@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signaler un bug — VHOST</title>
+<link rel="icon" type="image/svg+xml" href="/assets/Favicon.svg">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px}
+.container{width:100%;max-width:560px}
+.header{text-align:center;margin-bottom:32px}
+.header .icon{width:56px;height:56px;background:rgba(229,72,77,.1);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
+.header h1{font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px}
+.header p{font-size:14px;color:var(--text-muted)}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow-card)}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);background:#f8fafc;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--cyan);background:#fff}
+.field textarea{resize:vertical;min-height:120px}
+.field-hint{font-size:11px;color:var(--text-muted);margin-top:4px}
+.categories{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cat-btn{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;color:var(--text)}
+.cat-btn.active{border-color:var(--cyan);background:rgba(15,156,143,.08);color:var(--cyan)}
+.severity{display:flex;gap:8px;margin-top:6px}
+.sev-btn{flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;color:var(--text)}
+.sev-btn.active-low{border-color:#16a34a;background:rgba(22,163,74,.08);color:#16a34a}
+.sev-btn.active-medium{border-color:#f5a524;background:rgba(245,165,36,.08);color:#f5a524}
+.sev-btn.active-high{border-color:#e5484d;background:rgba(229,72,77,.08);color:#e5484d}
+.btn-submit{width:100%;padding:13px;background:var(--cyan);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn-submit:hover{background:#12b5a6}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+.success{display:none;text-align:center;padding:32px 0}
+.success .check{font-size:48px;margin-bottom:12px}
+.success h2{font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px}
+.success p{font-size:14px;color:var(--text-muted)}
+.err{color:#e5484d;font-size:13px;margin-top:8px;display:none}
+.back-link{display:block;text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)}
+.back-link a{color:var(--cyan);text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v1a3 3 0 0 1-3 3h-1v2a4 4 0 0 1-8 0v-2H7a3 3 0 0 1-3-3v-1a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z"/><path d="M9 9h6M9 13h6"/></svg></div>
+    <h1>Signaler un bug</h1>
+    <p>Un problème sur VHOST ? Décris-le et notre équipe le corrige rapidement.</p>
+  </div>
+  <div class="card">
+    <div id="form-content">
+      <div class="field">
+        <label>Catégorie</label>
+        <div class="categories">
+          <div class="cat-btn active" onclick="setCategory('Dashboard')" id="cat-Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Dashboard</div>
+          <div class="cat-btn" onclick="setCategory('Serveur Minecraft')" id="cat-Serveur Minecraft"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M8 12h8M12 8v8"/></svg> Minecraft</div>
+          <div class="cat-btn" onclick="setCategory('Bot Discord')" id="cat-Bot Discord"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="9" cy="8" r="1" fill="currentColor"/><circle cx="15" cy="8" r="1" fill="currentColor"/></svg> Bot Discord</div>
+          <div class="cat-btn" onclick="setCategory('Paiement')" id="cat-Paiement"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> Paiement</div>
+          <div class="cat-btn" onclick="setCategory('Panel Staff')" id="cat-Panel Staff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg> Panel Staff</div>
+          <div class="cat-btn" onclick="setCategory('Autre')" id="cat-Autre"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg> Autre</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Sévérité</label>
+        <div class="severity">
+          <div class="sev-btn active-low" onclick="setSeverity('Faible')" id="sev-Faible"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#16a34a"/></svg> Faible</div>
+          <div class="sev-btn" onclick="setSeverity('Moyen')" id="sev-Moyen"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#f5a524"/></svg> Moyen</div>
+          <div class="sev-btn" onclick="setSeverity('Critique')" id="sev-Critique"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#e5484d"/></svg> Critique</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Titre du bug <span style="color:#e5484d">*</span></label>
+        <input type="text" id="bug-title" placeholder="Ex: Le serveur ne démarre pas après redémarrage">
+      </div>
+      <div class="field">
+        <label>Description détaillée <span style="color:#e5484d">*</span></label>
+        <textarea id="bug-desc" placeholder="Décris le bug : ce que tu faisais, ce qui s'est passé, ce qui était attendu..."></textarea>
+      </div>
+      <div class="field">
+        <label>Étapes pour reproduire</label>
+        <textarea id="bug-steps" placeholder="1. Aller sur...\n2. Cliquer sur...\n3. Le bug apparaît..." style="min-height:80px"></textarea>
+      </div>
+      <div class="field">
+        <label>Ton username VHOST</label>
+        <input type="text" id="bug-user" placeholder="Laisse vide si anonyme">
+      </div>
+      <div class="err" id="err-msg"></div>
+      <button class="btn-submit" id="submit-btn" onclick="submitReport()">Envoyer le rapport</button>
+    </div>
+    <div class="success" id="success-msg">
+      <div class="check"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg></div>
+      <h2>Rapport envoyé !</h2>
+      <p>Notre équipe a été notifiée et traitera ton bug rapidement.<br>Merci de contribuer à améliorer VHOST !</p>
+    </div>
+  </div>
+  <div class="back-link"><a href="/">← Retour à l'accueil</a></div>
+</div>
+<script>
+let selectedCategory = 'Dashboard';
+let selectedSeverity = 'Faible';
+
+function setCategory(cat) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('cat-'+cat);
+  if (el) el.classList.add('active');
+  selectedCategory = cat;
+}
+
+function setSeverity(sev) {
+  document.querySelectorAll('.sev-btn').forEach(b => b.classList.remove('active-low','active-medium','active-high'));
+  const el = document.getElementById('sev-'+sev);
+  if (el) el.classList.add(sev === 'Faible' ? 'active-low' : sev === 'Moyen' ? 'active-medium' : 'active-high');
+  selectedSeverity = sev;
+}
+
+async function submitReport() {
+  const title = document.getElementById('bug-title').value.trim();
+  const desc = document.getElementById('bug-desc').value.trim();
+  const steps = document.getElementById('bug-steps').value.trim();
+  const user = document.getElementById('bug-user').value.trim();
+  const err = document.getElementById('err-msg');
+
+  if (!title) { err.textContent = 'Le titre est obligatoire.'; err.style.display='block'; return; }
+  if (!desc) { err.textContent = 'La description est obligatoire.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours...';
+
+  try {
+    const r = await fetch('/api/report-bug', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ title, desc, steps, user, category: selectedCategory, severity: selectedSeverity })
+    });
+    if (r.ok) {
+      document.getElementById('form-content').style.display = 'none';
+      document.getElementById('success-msg').style.display = 'block';
+    } else {
+      err.textContent = 'Erreur lors de l\'envoi. Réessaie.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le rapport';
+    }
+  } catch {
+    err.textContent = 'Erreur réseau. Réessaie.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Envoyer le rapport';
+  }
+}
+</script>
+</body>
+</html>

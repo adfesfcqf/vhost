@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Confirmation d'achat — Ticket Bot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/Favicon.svg">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+  .code-box {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: center;
+    padding: 16px 12px;
+    margin: 18px 0 10px;
+    border: 2px dashed currentColor;
+    border-radius: 12px;
+    user-select: all;
+    word-break: break-all;
+  }
+  .plan-line { text-align: center; margin: 0 0 4px; }
+  .warn { font-size: 0.85rem; text-align: center; margin: 10px 0 18px; }
+</style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo" id="icon">⏳</div>
+    <h1 id="title">Vérification du paiement…</h1>
+    <p class="sub" id="sub">Ne ferme pas cette page, ça ne prend que quelques secondes.</p>
+    <div class="auth-error" id="error"></div>
+
+    <div id="result" style="display:none;">
+      <p class="plan-line">Offre : <strong id="plan"></strong></p>
+      <div class="code-box" id="code"></div>
+      <button type="button" class="btn-primary" style="width:100%" id="copy">Copier le code</button>
+      <p class="warn">⚠️ Note bien ce code : il ne s'affichera plus en dehors de cette page et sert à créer ton compte.</p>
+      <a href="/signup" class="btn-primary" id="signup"
+         style="display:block; text-align:center; text-decoration:none; padding:12px 20px;">Créer mon compte</a>
+    </div>
+  </div>
+
+  <!-- Formulaire Discord -->
+  <div id="discord-form" style="display:none;margin-top:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;text-align:center">
+    <div style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:6px">Ton ID Discord</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px">Active-le via Parametres > Avance > Mode developpeur, puis clic droit sur ton profil > Copier l ID</div>
+    <input id="discord-id-input" type="text" placeholder="Ex: 123456789012345678"
+      style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;text-align:center">
+    <button onclick="sendCredentials()"
+      style="width:100%;padding:11px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:white;font-size:14px;font-weight:600;cursor:pointer"
+      id="send-creds-btn">Recevoir mes identifiants par MP</button>
+    <div id="discord-form-error" style="color:#f43f5e;font-size:12px;margin-top:8px;display:none"></div>
+    <div id="discord-form-ok" style="color:#10b981;font-size:13px;font-weight:600;margin-top:8px;display:none">Message envoye ! Verifie tes MPs Discord.</div>
+  </div>
+
+</div>
+</div>
+<script>
+const sessionId = new URLSearchParams(location.search).get('session_id');
+const isFree = new URLSearchParams(location.search).get('free') === '1';
+const isCustom = new URLSearchParams(location.search).get('custom') === '1';
+const isCombo = new URLSearchParams(location.search).get('combo') === '1';
+const $ = (id) => document.getElementById(id);
+let tries = 0;
+
+function fail(msg) {
+  $('icon').textContent = '⚠️';
+  $('title').textContent = 'Un souci est survenu';
+  $('sub').textContent = '';
+  $('error').textContent = msg;
+  $('error').classList.add('show');
+}
+
+async function check() {
+  // Offre personnalisee gratuite (test) — bypass Stripe
+  if (isFree && isCombo) {
+    const params = new URLSearchParams(location.search);
+    const botPlan = params.get('botPlan') || 'bot_standard';
+    const mcPlan = params.get('mcPlan') || 'minecraft_std';
+    const planLabel = 'Pack Complet — Bot '+botPlan+' + Minecraft '+mcPlan;
+    $('icon').textContent = '🎉';
+    $('title').textContent = 'Commande confirmee !';
+    $('sub').textContent = 'Ton pack Discord + Minecraft est en cours de creation.';
+    document.getElementById('discord-form').style.display = 'block';
+    document.getElementById('discord-form').dataset.planLabel = planLabel;
+    document.getElementById('discord-form').dataset.planType = 'combo';
+    document.getElementById('discord-form').dataset.botPlan = botPlan;
+    document.getElementById('discord-form').dataset.mcPlan = mcPlan;
+    return;
+  }
+  if (isFree && isCustom) {
+    const params = new URLSearchParams(location.search);
+    const ram = params.get('ram') || '2';
+    const players = params.get('players') || '5';
+    const months = params.get('months') || '1';
+    const days = params.get('days') || null;
+    const planLabel = 'Minecraft Personnalise — '+ram+'Go RAM / '+players+' joueurs / '+(days?days+' jours':months+' mois');
+    // Afficher formulaire Discord
+    $('icon').textContent = '✅';
+    $('title').textContent = 'Paiement confirme !';
+    $('sub').textContent = 'Entre ton ID Discord pour recevoir tes identifiants par MP.';
+    $('error').classList.remove('show');
+    document.getElementById('discord-form').style.display = 'block';
+    document.getElementById('discord-form').dataset.planLabel = planLabel;
+    return;
+  }
+  if (!sessionId) return fail('Lien de confirmation invalide.');
+  try {
+    const r = await fetch('/api/stripe/order?session_id=' + encodeURIComponent(sessionId), { cache: 'no-store' });
+    const data = await r.json();
+    if (!r.ok) return fail(data.error || 'Erreur inconnue.');
+
+    if (data.status === 'paid') {
+      $('icon').textContent = '✅';
+      $('title').textContent = 'Paiement confirme !';
+      $('sub').textContent = 'Entre ton ID Discord pour recevoir tes identifiants par MP.';
+      document.getElementById('discord-form').style.display = 'block';
+      document.getElementById('discord-form').dataset.planLabel = data.planLabel || 'Service VHOST';
+      document.getElementById('discord-form').dataset.planType = data.planType || '';
+      document.getElementById('discord-form').dataset.code = data.code || '';
+      return;
+    }
+    // Paiement pas encore confirmé côté Stripe : on réessaie quelques fois.
+    if (++tries < 20) return setTimeout(check, 2000);
+    fail("Le paiement n'est pas encore confirmé. Recharge cette page dans un instant ; si le problème persiste, contacte le support avec ton reçu.");
+  } catch (e) {
+    if (++tries < 20) return setTimeout(check, 3000);
+    fail('Connexion au serveur impossible. Recharge la page.');
+  }
+}
+
+$('copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('code').textContent);
+    $('copy').textContent = 'Copié ✓';
+  } catch (e) {
+    $('copy').textContent = 'Sélectionne le code et copie-le';
+  }
+});
+
+async function sendCredentials(){
+  const discordId = document.getElementById('discord-id-input').value.trim();
+  const form = document.getElementById('discord-form');
+  const errEl = document.getElementById('discord-form-error');
+  const okEl = document.getElementById('discord-form-ok');
+  const btn = document.getElementById('send-creds-btn');
+  errEl.style.display='none'; okEl.style.display='none';
+  if(!/^[0-9]{15,20}$/.test(discordId)){
+    errEl.textContent='ID Discord invalide (15-20 chiffres).';
+    errEl.style.display='block'; return;
+  }
+  btn.textContent='Envoi en cours…'; btn.disabled=true;
+  // Generer credentials
+  const chars='abcdefghjkmnpqrstuvwxyz23456789';
+  const rand=(n)=>Array.from({length:n},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+  const username='user_'+rand(6);
+  const password=rand(4)+'-'+rand(4)+'-'+rand(4);
+  const planLabel = form.dataset.planLabel || 'Service VHOST';
+  try{
+    const r = await fetch('/api/send-credentials',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify({discordId, username, password, planLabel, planType: form.dataset.planType||'', botPlan: form.dataset.botPlan||'', mcPlan: form.dataset.mcPlan||''})
+    });
+    const d = await r.json();
+    if(d.ok){
+      okEl.style.display='block';
+      btn.textContent='Message envoye !';
+      // Rediriger vers signup avec les credentials
+      setTimeout(()=>{
+        window.location.href='/signup?user='+encodeURIComponent(username)+'&code='+(form.dataset.code||'');
+      }, 3000);
+    } else {
+      errEl.textContent = d.error || 'Erreur inconnue.';
+      errEl.style.display='block';
+      btn.textContent='Reessayer'; btn.disabled=false;
+    }
+  }catch(e){
+    errEl.textContent='Erreur reseau.'; errEl.style.display='block';
+    btn.textContent='Reessayer'; btn.disabled=false;
+  }
+}
+check();
+</script>
+</body>
+</html>

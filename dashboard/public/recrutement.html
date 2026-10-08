@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recrutement — VHOST Hébergement</title>
+<meta name="description" content="Rejoignez l'équipe VHOST en tant que bénévole. Postes ouverts : Support et Développeur.">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.7;color:#1e293b;background:#f8fafc}
+.container{max-width:760px;margin:0 auto;padding:40px 24px}
+.header{text-align:center;margin-bottom:40px}
+.badge{display:inline-block;background:#ede9fe;color:#6d28d9;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}
+h1{font-size:32px;font-weight:800;color:#0f172a;margin-bottom:8px}
+.sub{font-size:14px;color:#64748b;max-width:500px;margin:0 auto}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:36px}
+.role-card{background:white;border:2px solid #e2e8f0;border-radius:14px;padding:20px;cursor:pointer;transition:all .2s;position:relative}
+.role-card:hover{border-color:#8b5cf6;box-shadow:0 4px 20px rgba(139,92,246,.1)}
+.role-card.selected{border-color:#6366f1;background:linear-gradient(135deg,#faf5ff,#fff)}
+.role-card input[type=radio]{position:absolute;opacity:0}
+.role-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.role-icon.support{background:#ede9fe}
+.role-icon.dev{background:#dbeafe}
+.role-title{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px}
+.role-desc{font-size:12px;color:#64748b;line-height:1.5}
+.role-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.role-tag{font-size:10px;padding:2px 8px;border-radius:12px;font-weight:600}
+.tag-p{background:#ede9fe;color:#6d28d9}
+.tag-b{background:#dbeafe;color:#1d4ed8}
+.tag-g{background:#dcfce7;color:#15803d}
+.form-section{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:28px;margin-bottom:20px}
+.section-title{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field textarea,.field select{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;outline:none;transition:border .15s;font-family:inherit;background:white}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.08)}
+.field textarea{resize:vertical;min-height:100px}
+.field-hint{font-size:11px;color:#94a3b8;margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.benevole-note{background:linear-gradient(135deg,#fef9c3,#fef3c7);border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+.benevole-note svg{flex-shrink:0;margin-top:1px}
+.benevole-note p{font-size:12px;color:#92400e;line-height:1.6}
+.submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:white;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:8px}
+.submit-btn:hover{opacity:.88}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+.success{display:none;text-align:center;padding:40px;background:white;border:1px solid #e2e8f0;border-radius:14px}
+.success-icon{font-size:48px;margin-bottom:16px}
+.success h2{font-size:20px;font-weight:700;color:#0f172a;margin-bottom:8px}
+.success p{font-size:13px;color:#64748b}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:12px;color:#dc2626;margin-top:12px;display:none}
+@media(max-width:600px){.cards{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="badge">Nous recrutons</span>
+    <h1>Rejoindre l'équipe VHOST</h1>
+    <p class="sub">Nous recherchons des personnes motivées pour renforcer notre équipe bénévole. Sélectionne le poste qui te correspond.</p>
+  </div>
+
+  <div class="benevole-note">
+    <svg width="18" height="18" fill="none" stroke="#92400e" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <p><strong>Poste bénévole :</strong> Ces postes sont non rémunérés. En rejoignant l'équipe VHOST, tu contribues bénévolement au développement du projet et bénéficies en retour d'avantages exclusifs (accès premium, rôle staff, canal privé).</p>
+  </div>
+
+  <div class="cards" id="role-cards">
+    <label class="role-card selected" id="card-support">
+      <input type="radio" name="poste" value="Support" checked onchange="selectRole('support')">
+      <div class="role-icon support">
+        <svg width="22" height="22" fill="none" stroke="#6d28d9" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="role-title">Support</div>
+      <div class="role-desc">Aide les clients, réponds aux tickets, résous les problèmes techniques de premier niveau.</div>
+      <div class="role-tags">
+        <span class="role-tag tag-p">Communication</span>
+        <span class="role-tag tag-g">Débutant OK</span>
+      </div>
+    </label>
+    <label class="role-card" id="card-dev">
+      <input type="radio" name="poste" value="Développeur" onchange="selectRole('dev')">
+      <div class="role-icon dev">
+        <svg width="22" height="22" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <div class="role-title">Développeur</div>
+      <div class="role-desc">Participe au développement du dashboard, des bots Discord et des outils internes VHOST.</div>
+      <div class="role-tags">
+        <span class="role-tag tag-b">Node.js</span>
+        <span class="role-tag tag-b">Discord.js</span>
+        <span class="role-tag tag-p">JS/HTML</span>
+      </div>
+    </label>
+  </div>
+
+  <div id="form-container">
+    <form id="recrutement-form">
+      <div class="form-section">
+        <div class="section-title">Informations personnelles</div>
+        <div class="grid2">
+          <div class="field">
+            <label>Prénom *</label>
+            <input type="text" id="prenom" placeholder="Ton prénom" required>
+          </div>
+          <div class="field">
+            <label>Âge *</label>
+            <input type="number" id="age" placeholder="Ton âge" min="13" max="99" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Identifiant Discord *</label>
+          <input type="text" id="discord-id" placeholder="Ex: 123456789012345678" pattern="[0-9]{15,20}" required>
+          <div class="field-hint">Active le mode développeur (Paramètres → Avancé) puis clic droit sur ton profil → Copier l'ID</div>
+        </div>
+        <div class="field">
+          <label>Pseudo Discord *</label>
+          <input type="text" id="discord-pseudo" placeholder="Ex: pseudo#0000 ou pseudo" required>
+        </div>
+        <div class="field">
+          <label>Fuseau horaire *</label>
+          <select id="timezone" required>
+            <option value="">Sélectionne ton fuseau</option>
+            <option value="Europe/Paris">France / Belgique / Suisse (UTC+1/+2)</option>
+            <option value="Europe/London">Royaume-Uni (UTC+0/+1)</option>
+            <option value="America/Montreal">Québec / Canada Est (UTC-5/-4)</option>
+            <option value="America/New_York">USA Est (UTC-5/-4)</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Disponibilité hebdomadaire *</label>
+          <select id="dispo" required>
+            <option value="">Sélectionne ta disponibilité</option>
+            <option value="Moins de 5h/semaine">Moins de 5h/semaine</option>
+            <option value="5 à 10h/semaine">5 à 10h/semaine</option>
+            <option value="10 à 20h/semaine">10 à 20h/semaine</option>
+            <option value="Plus de 20h/semaine">Plus de 20h/semaine</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">Candidature</div>
+        <div class="field">
+          <label>Pourquoi veux-tu rejoindre VHOST ? *</label>
+          <textarea id="motivation" placeholder="Explique ta motivation, ce que tu apportes à l'équipe..." required minlength="100"></textarea>
+          <div class="field-hint">Minimum 100 caractères</div>
+        </div>
+        <div class="field">
+          <label>Expériences et compétences *</label>
+          <textarea id="experience" placeholder="Tes expériences passées, projets, compétences techniques..." required minlength="80"></textarea>
+        </div>
+        <div class="field">
+          <label>As-tu déjà été staff sur un autre serveur Discord ?</label>
+          <select id="ancien-staff">
+            <option value="Non">Non, c'est une première</option>
+            <option value="Oui">Oui, j'ai déjà été staff</option>
+          </select>
+        </div>
+        <div class="field" id="field-ancien-staff-detail" style="display:none">
+          <label>Détails sur tes expériences staff</label>
+          <textarea id="ancien-staff-detail" placeholder="Serveurs, rôles, durée..."></textarea>
+        </div>
+        <div id="dev-fields" style="display:none">
+          <div class="field">
+            <label>Lien GitHub <span style="color:#ef4444">*</span></label>
+            <input type="url" id="github" placeholder="https://github.com/tonpseudo">
+            <div class="field-hint">Ton profil GitHub public — obligatoire pour le poste Développeur</div>
+          </div>
+          <div class="field">
+            <label>Nombre de projets réalisés</label>
+            <select id="nb-projets">
+              <option value="Moins de 3">Moins de 3 projets</option>
+              <option value="3 à 5">3 à 5 projets</option>
+              <option value="5 à 10">5 à 10 projets</option>
+              <option value="Plus de 10">Plus de 10 projets</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Liens de tes projets principaux</label>
+            <textarea id="liens-projets" placeholder="GitHub, site en ligne, démo... (un lien par ligne)"></textarea>
+            <div class="field-hint">Partage tes meilleurs projets — bots Discord, sites web, outils, etc.</div>
+          </div>
+          <div class="field">
+            <label>Technologies maîtrisées</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="tech-list">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="Node.js"> Node.js</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="Discord.js"> Discord.js</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="HTML/CSS"> HTML/CSS</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="JavaScript"> JavaScript</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="Python"> Python</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="MySQL/SQL"> MySQL/SQL</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="React"> React</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" value="PHP"> PHP</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Screenshots de tes projets</label>
+            <textarea id="screens-desc" placeholder="Décris tes projets ou colle des liens vers des captures d'écran (Imgur, GitHub, etc.)"></textarea>
+            <div class="field-hint">Montre-nous ce que tu as réalisé visuellement</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Informations complémentaires</label>
+          <textarea id="complement" placeholder="Tout ce que tu veux ajouter à ta candidature..."></textarea>
+        </div>
+      </div>
+
+      <div class="form-section" style="background:#fafafa">
+        <div class="section-title">Engagement</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px">
+            <input type="checkbox" id="check1" required style="width:auto;margin-top:3px">
+            Je comprends que ce poste est <strong>&nbsp;bénévole et non rémunéré</strong>.
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px">
+            <input type="checkbox" id="check2" required style="width:auto;margin-top:3px">
+            Je m'engage à respecter les règles internes de VHOST et à être disponible régulièrement.
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px">
+            <input type="checkbox" id="check3" required style="width:auto;margin-top:3px">
+            J'accepte que mes données soient utilisées uniquement dans le cadre du processus de recrutement VHOST.
+          </label>
+        </div>
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+      <button type="submit" class="submit-btn" id="submit-btn">Envoyer ma candidature</button>
+    </form>
+
+    <div class="success" id="success-box">
+      <div class="success-icon">🎉</div>
+      <h2>Candidature envoyée !</h2>
+      <p>Merci pour ta candidature. Notre équipe va l'étudier et te contactera par MP Discord dans les plus brefs délais.<br><br>
+      <strong>Reste disponible sur Discord !</strong></p>
+    </div>
+  </div>
+</div>
+
+<script>
+function selectRole(role) {
+  document.getElementById('dev-fields').style.display = role === 'dev' ? 'block' : 'none';
+  const githubField = document.getElementById('github');
+  if (githubField) githubField.required = role === 'dev';
+  document.getElementById('card-support').classList.toggle('selected', role==='support');
+  document.getElementById('card-dev').classList.toggle('selected', role==='dev');
+}
+
+document.getElementById('ancien-staff').addEventListener('change', function() {
+  document.getElementById('field-ancien-staff-detail').style.display = this.value==='Oui' ? 'block' : 'none';
+});
+
+document.getElementById('recrutement-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const err = document.getElementById('error-msg');
+  err.style.display = 'none';
+
+  const poste = document.querySelector('input[name="poste"]:checked')?.value;
+  const prenom = document.getElementById('prenom').value.trim();
+  const age = document.getElementById('age').value;
+  const discordId = document.getElementById('discord-id').value.trim();
+  const discordPseudo = document.getElementById('discord-pseudo').value.trim();
+  const timezone = document.getElementById('timezone').value;
+  const dispo = document.getElementById('dispo').value;
+  const motivation = document.getElementById('motivation').value.trim();
+  const experience = document.getElementById('experience').value.trim();
+  const ancienStaff = document.getElementById('ancien-staff').value;
+  const ancienStaffDetail = document.getElementById('ancien-staff-detail').value.trim();
+  const complement = document.getElementById('complement').value.trim();
+    const github = document.getElementById('github').value.trim();
+    const nbProjets = document.getElementById('nb-projets').value;
+    const liensProjets = document.getElementById('liens-projets').value.trim();
+    const screensDesc = document.getElementById('screens-desc').value.trim();
+    const techs = Array.from(document.querySelectorAll('#tech-list input:checked')).map(c=>c.value).join(', ');
+    if (poste === 'Développeur' && !github) {
+      err.textContent = 'Le lien GitHub est obligatoire pour le poste Développeur.';
+      err.style.display = 'block'; return;
+    }
+
+  if (motivation.length < 100) {
+    err.textContent = 'Ta motivation doit faire au moins 100 caractères.';
+    err.style.display = 'block'; return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours...';
+
+  try {
+    const r = await fetch('/api/recrutement', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({ poste, prenom, age, discordId, discordPseudo, timezone, dispo, motivation, experience, ancienStaff, ancienStaffDetail, complement, github, nbProjets, liensProjets, screensDesc, techs })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('recrutement-form').style.display = 'none';
+      document.getElementById('success-box').style.display = 'block';
+    } else {
+      err.textContent = d.error || 'Erreur lors de l envoi.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Envoyer ma candidature';
+    }
+  } catch(ex) {
+    err.textContent = 'Erreur reseau. Reessaie dans un instant.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Envoyer ma candidature';
+  }
+});
+</script>
+</body>
+</html>

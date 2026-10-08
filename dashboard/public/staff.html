@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHOST — Staff</title>
+<link rel="icon" type="image/svg+xml" href="/assets/Favicon.svg">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f8f9fab2;--panel:#ffffff;--panel2:#f8f9fab2;--border:rgba(0,0,0,.1);
+  --text:#1a1d20;--muted:#6c757d;--accent:#0f9c8f;--accent2:#f5a524;
+  --green:#16a34a;--red:#e5484d;--amber:#f5a524;--cyan:#0f9c8f;--purple:#8b5cf6;
+  --radius:14px;--sidebar:240px;
+  --sidebar-bg:#000000;--sidebar-text:#ffffff;--sidebar-text-muted:#9e9e9e;
+  --sidebar-border:rgba(255,255,255,.12);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;overflow:hidden}
+
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:200;background:var(--bg);background-image:radial-gradient(ellipse at 20% 50%,rgba(79,120,255,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(139,92,246,.05) 0%,transparent 50%)}
+.login-box{width:380px;background:#ffffff;border:1px solid var(--border);border-radius:16px;padding:36px;box-shadow:var(--shadow-card)}
+.lb-logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.lb-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.lb-sub{font-size:12px;color:var(--muted);margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.field input{width:100%;padding:10px 13px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:border .15s}
+.field input:focus{border-color:rgba(79,120,255,.5);background:rgba(79,120,255,.04)}
+.login-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px}
+.login-btn:hover{opacity:.88}
+.login-err{color:var(--red);font-size:12px;margin-top:10px;text-align:center;min-height:16px}
+
+#app{display:none;height:100vh;overflow:hidden}
+#app.ready{display:flex}
+
+.sidebar{width:var(--sidebar);background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow-y:auto;color:var(--sidebar-text)}
+.sb-brand{padding:20px 16px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sb-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-name{font-size:14px;font-weight:700;letter-spacing:.04em}
+.sb-tag{font-size:9px;color:var(--red);background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.15);border-radius:4px;padding:2px 6px;letter-spacing:.08em;text-transform:uppercase;margin-top:1px;display:block}
+.nav-grp{padding:14px 12px 4px;font-size:9px;color:var(--sidebar-text-muted);letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;margin:1px 6px;cursor:pointer;transition:all .12s;color:var(--sidebar-text-muted);font-size:12px;font-weight:500}
+.nav-item:hover{background:rgba(255,255,255,.08);color:var(--sidebar-text)}
+.nav-item.active{background:rgba(15,156,143,.15);color:var(--cyan)}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nb{margin-left:auto;font-size:10px;background:rgba(79,120,255,.15);color:var(--accent);border-radius:8px;padding:1px 6px;font-weight:700}
+.nb.red{background:rgba(244,63,94,.12);color:var(--red)}
+.sb-footer{margin-top:auto;padding:10px 6px;border-top:1px solid var(--sidebar-border)}
+.sb-user{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,.06);margin-bottom:6px}
+.sb-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:600}
+.sb-urole{font-size:10px;color:var(--muted)}
+.sb-logout{width:calc(100% - 12px);margin:0 6px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:rgba(200,205,230,.35);font-size:11px;cursor:pointer;text-align:left;transition:all .12s}
+.sb-logout:hover{background:rgba(244,63,94,.06);border-color:rgba(244,63,94,.15);color:var(--red)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#ffffff;box-shadow:var(--shadow-card)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.tb-right{display:flex;gap:6px;align-items:center}
+.btn{padding:6px 13px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:11px;cursor:pointer;transition:all .12s;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.btn:hover{background:rgba(255,255,255,.05)}
+.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff}
+.btn-p:hover{opacity:.85}
+.btn-d{border-color:rgba(244,63,94,.25);color:var(--red)}
+.btn-d:hover{background:rgba(244,63,94,.06)}
+.btn-sm{padding:4px 10px;font-size:10px}
+
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.view{display:none}
+.view.active{display:block}
+
+.sg{display:grid;gap:10px;margin-bottom:20px}
+.sg4{grid-template-columns:repeat(4,1fr)}
+.sg3{grid-template-columns:repeat(3,1fr)}
+.sg2{grid-template-columns:repeat(2,1fr)}
+.sc{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;top:-10px;right:-10px;width:50px;height:50px;border-radius:50%;opacity:.07}
+.sc.blue::after{background:var(--accent)}.sc.green::after{background:var(--green)}.sc.red::after{background:var(--red)}.sc.amber::after{background:var(--amber)}.sc.cyan::after{background:var(--cyan)}.sc.purple::after{background:var(--purple)}
+.sc-ico{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.sc-ico.blue{background:rgba(79,120,255,.1);color:var(--accent)}.sc-ico.green{background:rgba(16,185,129,.1);color:var(--green)}.sc-ico.red{background:rgba(244,63,94,.1);color:var(--red)}.sc-ico.amber{background:rgba(245,158,11,.1);color:var(--amber)}.sc-ico.cyan{background:rgba(34,211,238,.1);color:var(--cyan)}.sc-ico.purple{background:rgba(168,85,247,.1);color:var(--purple)}
+.sc-val{font-size:24px;font-weight:700;line-height:1}
+.sc-lbl{font-size:11px;color:var(--muted);margin-top:3px}
+
+.panel{background:#ffffff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow-card)}
+.ph{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ph-title{font-size:13px;font-weight:600}
+.ph-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.pb{padding:16px 18px}
+
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 14px;text-align:left;font-size:10px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:600;background:rgba(255,255,255,.015);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.025);font-size:12px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;white-space:nowrap}
+.bg{background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.15)}
+.br{background:rgba(244,63,94,.08);color:var(--red);border:1px solid rgba(244,63,94,.15)}
+.ba{background:rgba(245,158,11,.08);color:var(--amber);border:1px solid rgba(245,158,11,.15)}
+.bb{background:rgba(79,120,255,.08);color:var(--accent);border:1px solid rgba(79,120,255,.15)}
+.bc{background:rgba(34,211,238,.08);color:var(--cyan);border:1px solid rgba(34,211,238,.15)}
+.bp{background:rgba(168,85,247,.08);color:var(--purple);border:1px solid rgba(168,85,247,.15)}
+.bgr{background:rgba(255,255,255,.04);color:var(--muted);border:1px solid var(--border)}
+.dot{width:5px;height:5px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dg{background:var(--green);box-shadow:0 0 4px var(--green)}.dr{background:var(--red)}.da{background:var(--amber)}.dgr{background:rgba(255,255,255,.2)}
+
+.sb-wrap{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sb-in{flex:1;padding:8px 13px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;transition:border .12s}
+.sb-in:focus{border-color:rgba(79,120,255,.4)}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:720px;max-width:95vw;overflow:hidden}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h2{font-size:15px;font-weight:700}
+.close-btn{background:rgba(255,255,255,.07);border:none;color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.close-btn:hover{background:rgba(255,255,255,.12);color:var(--text)}
+.modal-body{padding:20px 24px;max-height:75vh;overflow-y:auto}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.tab{padding:8px 14px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.ig3{grid-template-columns:1fr 1fr 1fr}
+.ii label{font-size:10px;color:var(--muted);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+.ii span{font-size:12px;font-weight:500}
+
+.log-box{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;line-height:1.8;max-height:280px;overflow-y:auto}
+.ll-err{color:var(--red)}.ll-ok{color:var(--green)}.ll-warn{color:var(--amber)}.ll-info{color:var(--cyan)}.ll-def{color:var(--muted)}
+
+.rev-big{font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+
+.file-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;background:rgba(255,255,255,.02);border:1px solid var(--border);margin-bottom:6px}
+.file-name{font-size:12px;font-weight:500;font-family:monospace}
+.file-meta{font-size:10px;color:var(--muted);margin-top:2px}
+
+.player-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.player-row:last-child{border-bottom:none}
+.player-av{width:28px;height:28px;border-radius:5px;background:var(--panel2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+.player-av img{width:100%;height:100%;object-fit:cover}
+.player-name{font-size:12px;font-weight:600}
+.player-info{font-size:10px;color:var(--muted)}
+
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:12px}
+.ar{display:flex;gap:5px}
+.sec-div{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="lb-logo">
+      <svg width="18" height="18" viewBox="0 0 100 100" fill="none"><path d="M18 22L50 78L82 22" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="lb-title">VHOST Staff</div>
+    <div class="lb-sub">Acces restreint — Personnel autorise uniquement</div>
+    <div class="field"><label>Identifiant</label><input type="text" id="login-user" placeholder="Identifiant" autocomplete="username"></div>
+    <div class="field"><label>Mot de passe</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="login-btn" id="login-btn">Connexion</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-icon"><svg width="16" height="16" viewBox="0 0 100 100" fill="none"><path d="M18 22L50 78L82 22" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div><div class="sb-name">VHOST</div><span class="sb-tag">Staff</span></div>
+    </div>
+    <div class="nav-grp">Dashboard</div>
+    <div class="nav-item active" data-view="dashboard"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Vue d'ensemble</div>
+    <div class="nav-item" data-view="revenue"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Revenus</div>
+    <div class="nav-grp">Services</div>
+    <div class="nav-item" data-view="clients"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clients<span class="nb" id="nb-clients">0</span></div>
+    <div class="nav-item" data-view="minecraft"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Serveurs MC<span class="nb" id="nb-mc">0</span></div>
+    <div class="nav-item" data-view="discord"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Bots Discord<span class="nb" id="nb-discord">0</span></div>
+    <div class="nav-grp">Développement</div>
+    <div class="nav-item" id="nav-dev" style="display:none" data-view="terminal" onclick="openTerminal()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      Terminal SSH
+    </div>
+    <div class="nav-grp">Gestion</div>
+    <div class="nav-item" data-view="subscriptions"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Abonnements</div>
+    <div class="nav-item" data-view="tokens"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Tokens IA</div>
+    <div class="nav-item" data-view="logs"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Logs systeme</div>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-av" id="sb-av">?</div>
+        <div><div class="sb-uname" id="sb-name">—</div><div class="sb-urole">Staff VHOST</div></div>
+      </div>
+      <button class="sb-logout" id="logout-btn">Deconnexion</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="topbar">
+      <div><div class="tb-title" id="page-title">Vue d'ensemble</div><div class="tb-sub" id="page-sub">Tableau de bord VHOST</div></div>
+      <div class="tb-right"><button class="btn" id="refresh-btn">Actualiser</button></div>
+    </div>
+    <div class="content">
+
+      <div class="view active" id="view-dashboard">
+        <div class="sg sg4">
+          <div class="sc blue"><div class="sc-ico blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="sc-val" id="d-total">—</div><div class="sc-lbl">Clients</div></div>
+          <div class="sc green"><div class="sc-ico green"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="sc-val" id="d-active">—</div><div class="sc-lbl">Abonnements actifs</div></div>
+          <div class="sc cyan"><div class="sc-ico cyan"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/></svg></div><div class="sc-val" id="d-mc">—</div><div class="sc-lbl">Serveurs MC</div></div>
+          <div class="sc purple"><div class="sc-ico purple"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="sc-val" id="d-discord">—</div><div class="sc-lbl">Bots Discord</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
+          <div class="panel">
+            <div class="ph"><div><div class="ph-title">Clients recents</div><div class="ph-sub">Derniers inscrits</div></div><button class="btn btn-sm" onclick="showView('clients')">Voir tous</button></div>
+            <div class="tw" id="recent-table"><div class="empty">Chargement…</div></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="ph-title">Revenus mensuels</div></div>
+            <div class="pb" style="text-align:center;padding:28px 16px">
+              <div class="rev-big" id="d-revenue">—</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px">estime / mois</div>
+              <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.1);border-radius:8px;padding:12px">
+                  <div style="font-size:16px;font-weight:700;color:var(--green)" id="d-rev-mc">—</div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px">Minecraft</div>
+                </div>
+                <div style="background:rgba(79,120,255,.05);border:1px solid rgba(79,120,255,.1);border-radius:8px;padding:12px">
+                  <div style="font-size:16px;font-weight:700;color:var(--accent)" id="d-rev-discord">—</div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px">Discord</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-revenue">
+        <div class="sg sg3" style="margin-bottom:20px">
+          <div class="sc green"><div class="sc-ico green"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="rev-big sc-val" id="rev-total">—</div><div class="sc-lbl">Total mensuel estime</div></div>
+          <div class="sc cyan"><div class="sc-val" id="rev-mc-total">—</div><div class="sc-lbl">Minecraft</div></div>
+          <div class="sc purple"><div class="sc-val" id="rev-discord-total">—</div><div class="sc-lbl">Discord</div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Detail par offre</div></div>
+          <div class="tw" id="rev-table"><div class="empty">Chargement…</div></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-clients">
+        <div class="sb-wrap">
+          <input class="sb-in" id="client-search" placeholder="Rechercher par nom, ID, service…">
+          <button class="btn" onclick="loadClients()">Actualiser</button>
+        </div>
+        <div class="panel"><div class="tw" id="clients-table"><div class="empty">Chargement…</div></div></div>
+      </div>
+
+      <div class="view" id="view-minecraft">
+        <div class="sg sg3" style="margin-bottom:14px">
+          <div class="sc blue"><div class="sc-val" id="mc-total">—</div><div class="sc-lbl">Installes</div></div>
+          <div class="sc green"><div class="sc-val" style="color:var(--green)" id="mc-online">—</div><div class="sc-lbl">En ligne</div></div>
+          <div class="sc red"><div class="sc-val" id="mc-offline">—</div><div class="sc-lbl">Arrets / Crash</div></div>
+        </div>
+        <div class="panel"><div class="tw" id="mc-table"><div class="empty">Chargement…</div></div></div>
+      </div>
+
+      <div class="view" id="view-discord">
+        <div class="panel"><div class="tw" id="discord-table"><div class="empty">Chargement…</div></div></div>
+      </div>
+
+      <div class="view" id="view-subscriptions">
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Abonnements Stripe</div></div>
+          <div class="tw" id="sub-table"><div class="empty">Chargement…</div></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-tokens">
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Tokens IA par client</div></div>
+          <div class="tw" id="tokens-table"><div class="empty">Chargement…</div></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-terminal">
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Terminal SSH</div><div class="ph-sub">Acces direct au VPS — reservé à mishima</div></div>
+          <div class="pb">
+            <div id="terminal-container" style="background:#000;border-radius:8px;padding:10px;min-height:400px;position:relative">
+              <div id="terminal-loading" style="color:#10b981;font-family:monospace;font-size:12px">Connexion au terminal...</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+              <button class="btn btn-sm" onclick="reconnectTerminal()">Reconnecter</button>
+              <button class="btn btn-sm btn-d" onclick="clearTerminal()">Effacer</button>
+            </div>
+            <div style="margin-top:16px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:14px">
+              <div class="sec-div" style="margin-bottom:10px">Commandes utiles</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px" id="cmd-shortcuts">
+                <button class="cmd-btn" onclick="runCmd('pm2 status')">pm2 status</button>
+                <button class="cmd-btn" onclick="runCmd('pm2 logs dashboard --lines 20 --nostream')">logs dashboard</button>
+                <button class="cmd-btn" onclick="runCmd('pm2 logs mc-agent --lines 20 --nostream')">logs mc-agent</button>
+                <button class="cmd-btn" onclick="runCmd('pm2 restart dashboard')">restart dashboard</button>
+                <button class="cmd-btn" onclick="runCmd('pm2 restart mc-agent')">restart mc-agent</button>
+                <button class="cmd-btn" onclick="runCmd('df -h')">espace disque</button>
+                <button class="cmd-btn" onclick="runCmd('free -h')">RAM</button>
+                <button class="cmd-btn" onclick="runCmd('uptime')">uptime</button>
+                <button class="cmd-btn" onclick="runCmd('ss -tlnp | grep -E "25[0-9]{3}"')">ports MC</button>
+                <button class="cmd-btn" onclick="runCmd('mysql -u dashuser -pVh0st3DB2026 dashboard_db -e "SELECT id,username,tenant_id FROM users ORDER BY id DESC LIMIT 10;"')">derniers users</button>
+                <button class="cmd-btn" onclick="runCmd('ls /opt/dashboard')">ls dashboard</button>
+                <button class="cmd-btn" onclick="runCmd('node --check /opt/dashboard/dashboard/server.js && echo OK')">check server.js</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-logs">
+        <div class="panel">
+          <div class="ph">
+            <div><div class="ph-title">Logs systeme</div><div class="ph-sub">Journal en temps reel</div></div>
+            <button class="btn btn-sm" onclick="document.getElementById('log-box').innerHTML=''">Effacer</button>
+          </div>
+          <div class="pb"><div class="log-box" id="log-box"><div class="ll-info">En attente…</div></div></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-title">Detail</h2>
+      <button class="close-btn" onclick="closeModal()">x</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const STAFF = {
+  'petitloup91': { pass: 'Vh0st3#C30_2026!', name: 'petitloup91', initials: 'PL' },
+  'mishima':     { pass: 'jpsa-b34a-fku3', name: 'Mishima',     initials: 'MI' },
+};
+const PLAN_PRICES = {
+  bot_standard:0.99, bot_avance:2.49, bot_premium:4.99, bot_ultra:9.99,
+  minecraft_std:6.99, minecraft_pro:12.99,
+};
+const VIEWS = {
+  dashboard:     ["Vue d'ensemble","Tableau de bord VHOST"],
+  revenue:       ["Revenus","Analyse financiere"],
+  clients:       ["Clients","Tous les espaces heberges"],
+  minecraft:     ["Serveurs Minecraft","Instances Java / Bedrock"],
+  discord:       ["Bots Discord","Bots heberges"],
+  subscriptions: ["Abonnements","Suivi Stripe"],
+  tokens:        ["Tokens IA","Credits par client"],
+  logs:          ["Logs systeme","Journal en temps reel"],
+};
+let currentUser=null, allTenants=[], logInterval=null;
+
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+async function doLogin(){
+  const u=document.getElementById('login-user').value.trim().toLowerCase();
+  const p=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-err');
+  try {
+    const r = await fetch('/api/staff/login', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const d = await r.json();
+    if(!r.ok){ err.textContent=d.error||'Identifiants incorrects.'; return; }
+    const staff=STAFF[u]||{name:u,initials:u.slice(0,2).toUpperCase()};
+    err.textContent=''; currentUser=staff;
+    sessionStorage.setItem('staff_u',u); startApp();
+  } catch(e){ err.textContent='Erreur reseau.'; }
+}
+function doLogout(){ sessionStorage.removeItem('staff_u'); fetch('/api/logout',{method:'POST'}).finally(()=>location.reload()); }
+const saved=sessionStorage.getItem('staff_u');
+if(saved){ currentUser=STAFF[saved]||{name:saved,initials:saved.slice(0,2).toUpperCase()}; startApp(); }
+
+function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.add('ready');
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-av').textContent=currentUser.initials;
+  document.getElementById('logout-btn').addEventListener('click',doLogout);
+  document.getElementById('refresh-btn').addEventListener('click',loadAll);
+  document.querySelectorAll('.nav-item[data-view]').forEach(item=>{
+    item.addEventListener('click',()=>showView(item.dataset.view));
+  });
+  loadAll();
+  setTimeout(initTerminal, 300);
+}
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+id)?.classList.add('active');
+  document.querySelector('.nav-item[data-view="'+id+'"]')?.classList.add('active');
+  const info=VIEWS[id]||[id,''];
+  document.getElementById('page-title').textContent=info[0];
+  document.getElementById('page-sub').textContent=info[1];
+  if(id==='clients') renderClients(allTenants);
+  if(id==='minecraft') renderMinecraft();
+  if(id==='discord') renderDiscord();
+  if(id==='subscriptions') renderSubscriptions();
+  if(id==='revenue') renderRevenue();
+  if(id==='tokens') loadTokens();
+  if(id==='logs') startLogs();
+}
+
+async function apiFetch(path){
+  const r=await fetch(path);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function loadAll(){
+  try{
+    const data=await apiFetch('/api/staff/overview');
+    allTenants=data.tenants||[];
+    updateStats(); renderRecentClients();
+  }catch(e){ console.error(e); }
+}
+
+function updateStats(){
+  const mc=allTenants.filter(t=>t.service==='minecraft');
+  const disc=allTenants.filter(t=>t.service==='discord');
+  const active=allTenants.filter(t=>t.sub&&t.sub.active);
+  document.getElementById('d-total').textContent=allTenants.length;
+  document.getElementById('d-active').textContent=active.length;
+  document.getElementById('d-mc').textContent=mc.length;
+  document.getElementById('d-discord').textContent=disc.length;
+  document.getElementById('nb-clients').textContent=allTenants.length;
+  document.getElementById('nb-mc').textContent=mc.length;
+  document.getElementById('nb-discord').textContent=disc.length;
+  let total=0,revMc=0,revD=0;
+  active.forEach(t=>{
+    const p=PLAN_PRICES[t.sub.planType]||0; total+=p;
+    if(t.service==='minecraft') revMc+=p; else revD+=p;
+  });
+  document.getElementById('d-revenue').textContent=fmt(total);
+  document.getElementById('d-rev-mc').textContent=fmt(revMc);
+  document.getElementById('d-rev-discord').textContent=fmt(revD);
+}
+
+function renderRecentClients(){
+  const el=document.getElementById('recent-table');
+  const list=allTenants.slice(0,8);
+  if(!list.length){ el.innerHTML='<div class="empty">Aucun client.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>ID</th><th>Nom</th><th>Service</th><th>Statut</th><th></th></tr></thead><tbody>'+
+    list.map(t=>'<tr>'+
+      '<td style="color:var(--muted);font-family:monospace">#'+t.id+'</td>'+
+      '<td style="font-weight:600">'+esc(t.name)+'</td>'+
+      '<td>'+svcBadge(t.service)+'</td>'+
+      '<td>'+subBadge(t.sub)+'</td>'+
+      '<td><button class="btn btn-sm btn-p" onclick="openDetail('+t.id+')">Detail</button></td>'+
+    '</tr>').join('')+
+  '</tbody></table>';
+}
+
+function loadClients(){ renderClients(allTenants); }
+function renderClients(tenants){
+  const q=(document.getElementById('client-search')||{}).value||'';
+  const ql=q.toLowerCase();
+  const f=ql?tenants.filter(t=>
+    (t.name||'').toLowerCase().includes(ql)||
+    String(t.id).includes(ql)||
+    (t.service||'').includes(ql)
+  ):tenants;
+  const el=document.getElementById('clients-table');
+  if(!f.length){ el.innerHTML='<div class="empty">Aucun resultat.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>ID</th><th>Nom</th><th>Service</th><th>Offre</th><th>Statut</th><th>Actions</th></tr></thead><tbody>'+
+    f.map(t=>'<tr>'+
+      '<td style="color:var(--muted);font-family:monospace;font-size:11px">#'+t.id+'</td>'+
+      '<td style="font-weight:600">'+esc(t.name)+'</td>'+
+      '<td>'+svcBadge(t.service)+'</td>'+
+      '<td>'+planBadge(t.sub)+'</td>'+
+      '<td>'+subBadge(t.sub)+'</td>'+
+      '<td><div class="ar"><button class="btn btn-sm btn-p" onclick="openDetail('+t.id+')">Detail</button></div></td>'+
+    '</tr>').join('')+
+  '</tbody></table>';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const cs=document.getElementById('client-search');
+  if(cs) cs.addEventListener('input',()=>renderClients(allTenants));
+});
+
+async function openDetail(id){
+  const t=allTenants.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('modal-title').textContent=esc(t.name)+' — #'+t.id;
+  document.getElementById('modal-bg').classList.add('open');
+  const isMc=t.service==='minecraft';
+  const tabs=isMc?['Infos','Serveur MC','Joueurs connectes','Fichiers uploades']:['Infos','Abonnement'];
+  let html='<div class="tabs" id="dtabs">'+
+    tabs.map((tab,i)=>'<div class="tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+tab+'</div>').join('')+
+  '</div>'+
+  tabs.map((_,i)=>'<div class="tab-pane'+(i===0?' active':'')+'" id="dtab-'+i+'"><div class="empty">Chargement…</div></div>').join('');
+  document.getElementById('modal-body').innerHTML=html;
+
+  // Tab 0 — Infos
+  let t0='<div class="sec-div">Informations client</div>'+
+    '<div class="ig">'+
+      '<div class="ii"><label>ID</label><span style="font-family:monospace">#'+t.id+'</span></div>'+
+      '<div class="ii"><label>Nom</label><span>'+esc(t.name)+'</span></div>'+
+      '<div class="ii"><label>Service</label><span>'+svcBadge(t.service)+'</span></div>'+
+      '<div class="ii"><label>Cree le</label><span>'+(t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}):'—')+'</span></div>'+
+      '<div class="ii"><label>Discord Owner ID</label><span style="font-family:monospace;font-size:11px">'+esc(t.owner_discord_id||'—')+'</span></div>'+
+      '<div class="ii"><label>Slug</label><span style="font-family:monospace">'+esc(t.slug||'—')+'</span></div>'+
+    '</div>';
+  if(t.sub&&t.sub.planType){
+    t0+='<div class="sec-div" style="margin-top:14px">Abonnement</div>'+
+      '<div class="ig">'+
+        '<div class="ii"><label>Offre</label><span>'+planBadge(t.sub)+'</span></div>'+
+        '<div class="ii"><label>Statut</label><span>'+subBadge(t.sub)+'</span></div>'+
+        '<div class="ii"><label>Prix</label><span style="color:var(--green);font-weight:600">'+((PLAN_PRICES[t.sub.planType]||0).toFixed(2))+'EUR/mois</span></div>'+
+        '<div class="ii"><label>Stripe Sub ID</label><span style="font-family:monospace;font-size:10px;color:var(--muted)">'+esc(t.sub.stripeSubId||'—')+'</span></div>'+
+      '</div>';
+  }
+  if(t.tokens){
+    t0+='<div class="sec-div" style="margin-top:14px">Tokens IA</div>'+
+      '<div class="ig">'+
+        '<div class="ii"><label>Solde</label><span style="color:'+((t.tokens.balance||0)>10?'var(--green)':'var(--red)')+';font-weight:700">'+(t.tokens.balance||0)+' tokens</span></div>'+
+        '<div class="ii"><label>Utilises</label><span>'+(t.tokens.total_used||0)+'</span></div>'+
+      '</div>';
+  }
+  document.getElementById('dtab-0').innerHTML=t0;
+
+  if(isMc){
+    // Tab 1 — Serveur MC
+    document.getElementById('dtab-1').innerHTML=
+      '<div class="sec-div">Configuration serveur</div>'+
+      '<div class="ig ig3">'+
+        '<div class="ii"><label>Edition</label><span>'+badgeMcEdition(t.mc&&t.mc.edition)+'</span></div>'+
+        '<div class="ii"><label>Loader</label><span style="font-family:monospace">'+esc((t.mc&&t.mc.loader)||'—')+'</span></div>'+
+        '<div class="ii"><label>Version</label><span style="font-family:monospace">'+esc((t.mc&&t.mc.mcVersion)||'—')+'</span></div>'+
+        '<div class="ii"><label>Port</label><span style="font-family:monospace">'+((t.mc&&t.mc.port)||'—')+'</span></div>'+
+        '<div class="ii"><label>RAM allouee</label><span>'+((t.mc&&t.mc.memoryMb)?t.mc.memoryMb+' Mo':'—')+'</span></div>'+
+        '<div class="ii"><label>Statut</label><span>'+statusBadge(t.status)+'</span></div>'+
+      '</div>'+
+      '<div class="sec-div" style="margin-top:14px">Connexion</div>'+
+      '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;color:var(--cyan)">'+
+        '103.102.135.92:'+((t.mc&&t.mc.port)||'?')+
+      '</div>'+
+      '<div class="sec-div" style="margin-top:14px">Actions</div>'+
+      '<div class="ar" style="flex-wrap:wrap;gap:8px">'+
+        '<button class="btn btn-p" onclick="staffAction('+id+',\'start\')">Demarrer</button>'+
+        '<button class="btn" onclick="staffAction('+id+',\'restart\')" style="border-color:rgba(245,158,11,.3);color:var(--amber)">Redemarrer</button>'+
+        '<button class="btn" onclick="staffAction('+id+',\'stop\')" style="border-color:rgba(244,63,94,.25);color:var(--red)">Arreter</button>'+
+        '<button class="btn btn-d" onclick="staffDelete('+id+')" style="margin-left:auto">Supprimer le service</button>'+
+      '</div>';
+    loadPlayers(id);
+    loadFiles(id);
+  } else {
+    document.getElementById('dtab-1').innerHTML=
+      '<div class="sec-div">Actions</div>'+
+      '<div class="ar" style="flex-wrap:wrap;gap:8px;margin-bottom:16px">'+
+        '<button class="btn btn-p" onclick="staffAction('+id+',\'start\')">Demarrer</button>'+
+        '<button class="btn" onclick="staffAction('+id+',\'restart\')" style="border-color:rgba(245,158,11,.3);color:var(--amber)">Redemarrer</button>'+
+        '<button class="btn" onclick="staffAction('+id+',\'stop\')" style="border-color:rgba(244,63,94,.25);color:var(--red)">Arreter</button>'+
+        '<button class="btn btn-d" onclick="staffDelete('+id+')" style="margin-left:auto">Supprimer le service</button>'+
+      '</div>'+
+      '<div class="sec-div">Detail abonnement</div>'+
+      (t.sub&&t.sub.planType?
+        '<div class="ig">'+
+          '<div class="ii"><label>Offre</label><span>'+planBadge(t.sub)+'</span></div>'+
+          '<div class="ii"><label>Statut</label><span>'+subBadge(t.sub)+'</span></div>'+
+          '<div class="ii"><label>Prix mensuel</label><span style="color:var(--green);font-weight:700">'+((PLAN_PRICES[t.sub.planType]||0).toFixed(2))+'EUR</span></div>'+
+          '<div class="ii"><label>Stripe Sub ID</label><span style="font-family:monospace;font-size:10px">'+esc(t.sub.stripeSubId||'—')+'</span></div>'+
+        '</div>'
+      :'<div class="empty">Pas d\'abonnement actif.</div>');
+  }
+}
+
+function switchTab(i){
+  document.querySelectorAll('#dtabs .tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.tab-pane').forEach((p,j)=>p.classList.toggle('active',j===i));
+}
+
+async function loadPlayers(tenantId){
+  const el=document.getElementById('dtab-2');
+  if(!el) return;
+  el.innerHTML='<div class="empty">Chargement des joueurs…</div>';
+  try{
+    const data=await apiFetch('/api/staff/service/'+tenantId+'/players');
+    const players=data.players||[];
+    if(!players.length){
+      el.innerHTML='<div class="sec-div">Joueurs connectes</div><div class="empty">Aucun joueur en ligne.</div>';
+      return;
+    }
+    el.innerHTML='<div class="sec-div">Joueurs connectes ('+players.length+')</div>'+
+      players.map(p=>{
+        const name=typeof p==='string'?p:(p.name||'Inconnu');
+        const uuid=typeof p==='object'?p.uuid:'';
+        const since=typeof p==='object'?p.since:'';
+        const isOp=typeof p==='object'?p.op:false;
+        return '<div class="player-row">'+
+          '<div class="player-av">'+
+            (uuid?'<img src="https://crafatar.com/avatars/'+uuid+'?size=28&overlay" onerror="this.style.display=\'none\'" alt="">':'?')+
+          '</div>'+
+          '<div>'+
+            '<div class="player-name">'+esc(name)+'</div>'+
+            (since?'<div class="player-info">Connecte depuis '+esc(since)+'</div>':'')+
+          '</div>'+
+          '<div style="margin-left:auto">'+(isOp?'<span class="badge bb">OP</span>':'')+
+          '</div>'+
+        '</div>';
+      }).join('');
+  }catch(e){
+    el.innerHTML='<div class="sec-div">Joueurs connectes</div><div class="empty">Serveur hors ligne ou pas de donnees.</div>';
+  }
+}
+
+async function loadFiles(tenantId){
+  const el=document.getElementById('dtab-3');
+  if(!el) return;
+  el.innerHTML='<div class="empty">Chargement des fichiers…</div>';
+  try{
+    const data=await apiFetch('/api/staff/service/'+tenantId+'/files');
+    const files=data.files||[];
+    if(!files.length){
+      el.innerHTML='<div class="sec-div">Fichiers uploades</div><div class="empty">Aucun fichier.</div>';
+      return;
+    }
+    el.innerHTML='<div class="sec-div">Fichiers uploades ('+files.length+')</div>'+
+      files.map(f=>'<div class="file-row">'+
+        '<div>'+
+          '<div class="file-name">'+esc(f.name)+'</div>'+
+          '<div class="file-meta">'+(f.folder||'')+' — '+formatSize(f.size)+'</div>'+
+        '</div>'+
+        '<a href="/api/tenants/'+tenantId+'/files/download?file='+encodeURIComponent(f.path||f.name)+'" download="'+esc(f.name)+'" class="btn btn-sm">Telecharger</a>'+
+      '</div>').join('');
+  }catch(e){
+    el.innerHTML='<div class="sec-div">Fichiers uploades</div><div class="empty">Impossible de charger les fichiers.</div>';
+  }
+}
+
+function formatSize(bytes){
+  if(!bytes) return '—';
+  if(bytes<1024) return bytes+'o';
+  if(bytes<1048576) return (bytes/1024).toFixed(1)+'Ko';
+  return (bytes/1048576).toFixed(1)+'Mo';
+}
+
+async function staffAction(id, action){
+  if(!confirm('Confirmer : '+action+' le service #'+id+' ?')) return;
+  try{
+    const r = await fetch('/api/staff/service/'+id+'/'+action, {method:'POST', headers:{'content-type':'application/json'}, body:'{}'});
+    const d = await r.json();
+    if(d.ok) { alert('Action effectuee avec succes.'); await loadAll(); }
+    else alert('Erreur : '+(d.error||'inconnue'));
+  }catch(e){ alert('Erreur reseau : '+e.message); }
+}
+async function staffDelete(id){
+  if(!confirm('ATTENTION : Supprimer definitivement le service #'+id+' ? Cette action est irreversible.')) return;
+  if(!confirm('Derniere confirmation : supprimer #'+id+' ?')) return;
+  try{
+    const r = await fetch('/api/staff/service/'+id, {method:'DELETE'});
+    const d = await r.json();
+    if(d.ok){ alert('Service supprime.'); closeModal(); await loadAll(); }
+    else alert('Erreur : '+(d.error||'inconnue'));
+  }catch(e){ alert('Erreur reseau : '+e.message); }
+}
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+}
+document.getElementById('modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-bg')) closeModal();
+});
+
+function renderMinecraft(){
+  const mc=allTenants.filter(t=>t.service==='minecraft');
+  document.getElementById('mc-total').textContent=mc.length;
+  document.getElementById('mc-online').textContent=mc.filter(t=>t.status==='running').length;
+  document.getElementById('mc-offline').textContent=mc.filter(t=>t.status!=='running').length;
+  const el=document.getElementById('mc-table');
+  if(!mc.length){ el.innerHTML='<div class="empty">Aucun serveur Minecraft.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>Client</th><th>Edition</th><th>Loader</th><th>Version</th><th>Port</th><th>RAM</th><th>Offre</th><th>Statut</th><th></th></tr></thead><tbody>'+
+    mc.map(t=>'<tr>'+
+      '<td style="font-weight:600">'+esc(t.name)+' <span style="color:var(--muted);font-size:10px">#'+t.id+'</span></td>'+
+      '<td>'+badgeMcEdition(t.mc&&t.mc.edition)+'</td>'+
+      '<td><span style="font-family:monospace;font-size:11px;color:var(--muted)">'+esc((t.mc&&t.mc.loader)||'—')+'</span></td>'+
+      '<td style="font-family:monospace;font-size:11px">'+esc((t.mc&&t.mc.mcVersion)||'—')+'</td>'+
+      '<td style="font-family:monospace">'+((t.mc&&t.mc.port)||'—')+'</td>'+
+      '<td style="color:var(--muted)">'+(t.mc&&t.mc.memoryMb?t.mc.memoryMb+' Mo':'—')+'</td>'+
+      '<td>'+planBadge(t.sub)+'</td>'+
+      '<td>'+statusBadge(t.status)+'</td>'+
+      '<td><button class="btn btn-sm btn-p" onclick="openDetail('+t.id+')">Detail</button></td>'+
+    '</tr>').join('')+
+  '</tbody></table>';
+}
+
+function renderDiscord(){
+  const bots=allTenants.filter(t=>t.service==='discord');
+  const el=document.getElementById('discord-table');
+  if(!bots.length){ el.innerHTML='<div class="empty">Aucun bot.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>Client</th><th>Offre</th><th>Statut</th><th></th></tr></thead><tbody>'+
+    bots.map(t=>'<tr>'+
+      '<td style="font-weight:600">'+esc(t.name)+' <span style="color:var(--muted);font-size:10px">#'+t.id+'</span></td>'+
+      '<td>'+planBadge(t.sub)+'</td>'+
+      '<td>'+subBadge(t.sub)+'</td>'+
+      '<td><button class="btn btn-sm btn-p" onclick="openDetail('+t.id+')">Detail</button></td>'+
+    '</tr>').join('')+
+  '</tbody></table>';
+}
+
+function renderSubscriptions(){
+  const active=allTenants.filter(t=>t.sub&&t.sub.planType);
+  const el=document.getElementById('sub-table');
+  if(!active.length){ el.innerHTML='<div class="empty">Aucun abonnement.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>Client</th><th>Service</th><th>Offre</th><th>Prix</th><th>Statut</th><th>Stripe ID</th></tr></thead><tbody>'+
+    active.map(t=>'<tr>'+
+      '<td style="font-weight:600">'+esc(t.name)+' <span style="color:var(--muted);font-size:10px">#'+t.id+'</span></td>'+
+      '<td>'+svcBadge(t.service)+'</td>'+
+      '<td>'+planBadge(t.sub)+'</td>'+
+      '<td style="color:var(--green);font-weight:600">'+((PLAN_PRICES[t.sub.planType]||0).toFixed(2))+'EUR</td>'+
+      '<td>'+(t.sub.active?'<span class="badge bg">Actif</span>':'<span class="badge ba">Inactif</span>')+'</td>'+
+      '<td style="font-family:monospace;font-size:10px;color:var(--muted)">'+esc(t.sub.stripeSubId||'—')+'</td>'+
+    '</tr>').join('')+
+  '</tbody></table>';
+}
+
+function renderRevenue(){
+  let total=0,revMc=0,revD=0;
+  const byPlan={};
+  allTenants.filter(t=>t.sub&&t.sub.active).forEach(t=>{
+    const p=PLAN_PRICES[t.sub.planType]||0; total+=p;
+    if(t.service==='minecraft') revMc+=p; else revD+=p;
+    byPlan[t.sub.planType]=(byPlan[t.sub.planType]||0)+1;
+  });
+  document.getElementById('rev-total').textContent=fmt(total);
+  document.getElementById('rev-mc-total').textContent=fmt(revMc);
+  document.getElementById('rev-discord-total').textContent=fmt(revD);
+  const el=document.getElementById('rev-table');
+  const plans=Object.entries(byPlan);
+  if(!plans.length){ el.innerHTML='<div class="empty">Aucun abonnement actif.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>Offre</th><th>Clients</th><th>Prix unitaire</th><th>Total/mois</th></tr></thead><tbody>'+
+    plans.map(([plan,count])=>'<tr>'+
+      '<td>'+planBadge({planType:plan,active:true})+'</td>'+
+      '<td style="font-weight:600">'+count+'</td>'+
+      '<td>'+((PLAN_PRICES[plan]||0).toFixed(2))+'EUR</td>'+
+      '<td style="color:var(--green);font-weight:700">'+((count*(PLAN_PRICES[plan]||0)).toFixed(2))+'EUR</td>'+
+    '</tr>').join('')+
+  '</tbody></table>';
+}
+
+async function loadTokens(){
+  const el=document.getElementById('tokens-table');
+  try{
+    const data=await apiFetch('/api/staff/overview');
+    const tenants=data.tenants||[];
+    if(!tenants.length){ el.innerHTML='<div class="empty">Aucun client.</div>'; return; }
+    el.innerHTML='<table><thead><tr><th>Client</th><th>Service</th><th>Solde</th><th>Utilises</th><th>Total</th></tr></thead><tbody>'+
+      tenants.map(t=>'<tr>'+
+        '<td style="font-weight:600">'+esc(t.name)+' <span style="color:var(--muted);font-size:10px">#'+t.id+'</span></td>'+
+        '<td>'+svcBadge(t.service)+'</td>'+
+        '<td><span style="color:'+((t.tokens&&t.tokens.balance||0)>10?'var(--green)':'var(--red)')+';font-weight:700">'+((t.tokens&&t.tokens.balance)||0)+'</span></td>'+
+        '<td style="color:var(--muted)">'+((t.tokens&&t.tokens.total_used)||0)+'</td>'+
+        '<td style="color:var(--muted)">'+(((t.tokens&&t.tokens.balance)||0)+((t.tokens&&t.tokens.total_used)||0))+'</td>'+
+      '</tr>').join('')+
+    '</tbody></table>';
+  }catch(e){
+    el.innerHTML='<div class="empty" style="color:var(--red)">Erreur de chargement.</div>';
+  }
+}
+
+function startLogs(){
+  if(logInterval) return;
+  addLog('info','Connexion aux logs…');
+  logInterval=setInterval(pollLogs,4000);
+}
+async function pollLogs(){
+  try{
+    const d=await apiFetch('/api/staff/logs');
+    (d.lines||[]).forEach(l=>addLog(l.level,l.msg));
+  }catch{}
+}
+function addLog(level,msg){
+  const box=document.getElementById('log-box');
+  if(!box) return;
+  const d=document.createElement('div');
+  const cls=level==='err'?'ll-err':level==='warn'?'ll-warn':level==='ok'?'ll-ok':level==='info'?'ll-info':'ll-def';
+  d.className=cls;
+  d.textContent='['+new Date().toLocaleTimeString('fr-FR')+'] '+msg;
+  box.appendChild(d);
+  box.scrollTop=box.scrollHeight;
+  while(box.children.length>120) box.removeChild(box.firstChild);
+}
+
+function fmt(v){ return v.toFixed(2)+'EUR'; }
+function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+function svcBadge(s){
+  if(s==='discord') return '<span class="badge bb">Discord</span>';
+  if(s==='minecraft') return '<span class="badge bc">Minecraft</span>';
+  return '<span class="badge bgr">'+esc(s||'—')+'</span>';
+}
+function planBadge(sub){
+  if(!sub||!sub.planType) return '<span class="badge bgr">Aucune</span>';
+  const labels={bot_standard:'Standard',bot_avance:'Avance',bot_premium:'Premium',bot_ultra:'Ultra',minecraft_std:'Standard',minecraft_pro:'Pro'};
+  return '<span class="badge bb">'+(labels[sub.planType]||sub.planType)+'</span>';
+}
+function subBadge(sub){
+  if(!sub||!sub.planType) return '<span class="badge bgr">—</span>';
+  return sub.active
+    ? '<span class="badge bg"><span class="dot dg"></span> Actif</span>'
+    : '<span class="badge ba">Inactif</span>';
+}
+function statusBadge(status){
+  if(status==='running') return '<span class="badge bg"><span class="dot dg"></span> En ligne</span>';
+  if(status==='stopped') return '<span class="badge bgr"><span class="dot dgr"></span> Arrete</span>';
+  if(status==='crashed') return '<span class="badge br"><span class="dot dr"></span> Crash</span>';
+  return '<span class="badge bgr">—</span>';
+}
+function badgeMcEdition(e){
+  if(e==='bedrock') return '<span class="badge bp">Bedrock</span>';
+  return '<span class="badge bc">Java</span>';
+}
+</script>
+<style>
+.cmd-btn{padding:5px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;font-family:monospace;cursor:pointer;transition:all .12s}
+.cmd-btn:hover{background:rgba(79,120,255,.08);border-color:rgba(79,120,255,.2);color:var(--accent)}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script>
+let term = null, ws = null;
+
+function initTerminal() {
+  if (!currentUser) return;
+  const staffKey = Object.keys(STAFF).find(k => STAFF[k] === currentUser);
+  if (staffKey !== 'mishima') return;
+  document.getElementById('nav-dev').style.display = 'flex';
+}
+
+async function openTerminal() {
+  const container = document.getElementById('terminal-container');
+  document.getElementById('terminal-loading').style.display = 'block';
+  if (term) { term.dispose(); term = null; }
+  if (ws) { ws.close(); ws = null; }
+
+  // Obtenir un token temporaire
+  const r = await fetch('/api/staff/ssh-token', {method:'POST', headers:{'content-type':'application/json'}, body:'{}'});
+  if (!r.ok) { document.getElementById('terminal-loading').textContent = 'Acces refuse.'; return; }
+  const { token } = await r.json();
+
+  term = new Terminal({
+    cursorBlink: true,
+    fontSize: 13,
+    fontFamily: 'JetBrains Mono, Fira Code, monospace',
+    theme: { background: '#000000', foreground: '#dde0f0', cursor: '#10b981' },
+    cols: 120, rows: 30
+  });
+
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  container.innerHTML = '';
+  term.open(container);
+  fitAddon.fit();
+  document.getElementById('terminal-loading') && (document.getElementById('terminal-loading').style.display = 'none');
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto+'//'+location.host+'/staff-terminal?token='+token);
+
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'output') term.write(m.data);
+    if (m.type === 'exit') term.write('\r\n[Session terminee]');
+    if (m.type === 'error') term.write('\r\n[ERREUR: '+m.data+']');
+  };
+
+  ws.onclose = () => term && term.write('\r\n[Deconnecte]');
+
+  term.onData((data) => {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'input', data}));
+  });
+
+  window.addEventListener('resize', () => {
+    fitAddon.fit();
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'resize', cols:term.cols, rows:term.rows}));
+  });
+}
+
+function reconnectTerminal() { openTerminal(); }
+function runCmd(cmd) {
+  if (ws && ws.readyState === 1 && term) {
+    ws.send(JSON.stringify({type:'input', data: cmd + '\r'}));
+    term.focus();
+  }
+}
+// Activer le collage via clic droit
+document.addEventListener('contextmenu', function(e) {
+  if (e.target.closest('#terminal-container')) {
+    e.preventDefault();
+    navigator.clipboard.readText().then(text => {
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'input', data: text}));
+    }).catch(() => {});
+  }
+});
+function clearTerminal() { if (term) term.clear(); }
+
+// Hook sur showView pour ouvrir le terminal — utilise un flag pour eviter la recursion
+let _inShowView = false;
+const _origShowView = showView;
+window._staffShowView = function(id) {
+  if (_inShowView) return;
+  _inShowView = true;
+  _origShowView(id);
+  _inShowView = false;
+  if (id === 'terminal') openTerminal();
+};
+</script>
+</body>
+</html>

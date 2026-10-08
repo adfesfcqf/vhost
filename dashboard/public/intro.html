@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHOST — Hébergement Bot Discord & Serveur Minecraft</title>
+<meta name="description" content="VHOST propose l'hébergement de bots Discord et serveurs Minecraft à partir de 0,99€/mois. Simple, rapide, fiable. Essayez gratuitement.">
+<meta name="keywords" content="hébergement bot discord, serveur minecraft, hosting discord, bot discord pas cher, serveur minecraft bedrock, vhoste">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="VHOST — Hébergement Bot Discord & Serveur Minecraft">
+<meta property="og:description" content="Hébergez votre bot Discord ou serveur Minecraft à partir de 0,99€/mois. Simple, rapide, fiable.">
+<meta property="og:url" content="https://vhoste.cloud">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://vhoste.cloud/assets/Favicon.svg">
+<link rel="canonical" href="https://vhoste.cloud/">
+<link rel="icon" type="image/svg+xml" href="/assets/Favicon.svg">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#04040a}
+body{display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+
+/* Flash initial */
+.flash{position:fixed;inset:0;background:#fff;z-index:999;pointer-events:none;animation:flashIn .15s ease forwards .1s;opacity:0}
+@keyframes flashIn{0%{opacity:.4}100%{opacity:0}}
+
+/* Fond */
+.bg{position:fixed;inset:0;z-index:0}
+.bg-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(ellipse 90% 90% at 50% 50%,black 20%,transparent 100%);
+  -webkit-mask-image:radial-gradient(ellipse 90% 90% at 50% 50%,black 20%,transparent 100%);
+  animation:gridAppear 1.2s ease forwards;opacity:0;
+}
+@keyframes gridAppear{to{opacity:1}}
+.bg-glow{
+  position:absolute;width:900px;height:900px;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(30,55,130,.55) 0%,rgba(15,28,80,.2) 40%,transparent 70%);
+  animation:bgPulse 5s ease-in-out infinite;
+}
+@keyframes bgPulse{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}}
+
+/* Scan line */
+.scanline{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.scanline::after{
+  content:'';position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(80,150,255,.15),transparent);
+  animation:scan 3s linear infinite;top:-2px;
+}
+@keyframes scan{to{top:100vh}}
+
+/* Étoiles */
+.stars{position:fixed;inset:0;z-index:1;pointer-events:none}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.06}50%{opacity:.65}}
+
+/* Scène */
+.scene{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;gap:30px}
+
+/* Logo outer */
+.logo-outer{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  animation:logoReveal 1s cubic-bezier(.16,1,.3,1) .2s both;
+}
+@keyframes logoReveal{from{opacity:0;transform:scale(.3) translateY(40px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* Orbes orbitaux */
+.orbit{position:absolute;border-radius:50%;animation:spin linear infinite}
+.orbit-1{width:190px;height:190px;border:1px solid rgba(80,140,255,.12);animation-duration:14s}
+.orbit-2{width:255px;height:255px;border:1px solid rgba(120,90,255,.09);animation-duration:22s;animation-direction:reverse}
+.orbit-3{width:320px;height:320px;border:1px solid rgba(255,255,255,.04);animation-duration:36s}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.orbit-dot{position:absolute;border-radius:50%;top:0;left:50%;transform:translate(-50%,-50%)}
+.dot-blue{width:6px;height:6px;background:#3d8aff;box-shadow:0 0 12px 4px rgba(61,138,255,.9),0 0 24px 8px rgba(61,138,255,.4)}
+.dot-purple{width:5px;height:5px;background:#9b7eff;box-shadow:0 0 10px 3px rgba(155,126,255,.9),0 0 20px 6px rgba(155,126,255,.4)}
+
+/* Lueur derrière logo */
+.logo-glow{
+  position:absolute;width:220px;height:220px;
+  background:radial-gradient(circle,rgba(40,80,200,.7) 0%,rgba(30,60,160,.3) 40%,transparent 70%);
+  animation:glowBreath 3.5s ease-in-out infinite;
+}
+@keyframes glowBreath{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+/* Logo box */
+.logo-box{
+  width:118px;height:118px;border-radius:28px;
+  background:linear-gradient(140deg,#1e1e40 0%,#0c0c20 100%);
+  border:1px solid rgba(80,130,220,.35);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  box-shadow:
+    0 0 0 1px rgba(80,130,220,.12),
+    0 0 40px rgba(40,80,200,.25),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.3);
+}
+.logo-box::before{
+  content:'';position:absolute;top:-60%;left:-30%;width:160%;height:90%;
+  background:linear-gradient(180deg,rgba(80,120,220,.18) 0%,transparent 100%);
+  border-radius:50%;
+}
+/* Glitch effect */
+.logo-box.glitch{animation:glitch .4s steps(1) forwards}
+@keyframes glitch{
+  0%{box-shadow:2px 0 0 #ff0040,0 0 0 1px rgba(80,130,220,.12),0 0 40px rgba(40,80,200,.25)}
+  20%{box-shadow:-2px 0 0 #00ffff,0 0 0 1px rgba(80,130,220,.12),0 0 40px rgba(40,80,200,.25)}
+  40%{box-shadow:2px 0 0 #ff0040,0 0 0 1px rgba(80,130,220,.12),0 0 40px rgba(40,80,200,.25)}
+  60%{box-shadow:0 0 0 #fff,0 0 0 1px rgba(80,130,220,.12),0 0 40px rgba(40,80,200,.25)}
+  80%{box-shadow:-1px 0 0 #00ffff,0 0 0 1px rgba(80,130,220,.12),0 0 40px rgba(40,80,200,.25)}
+  100%{box-shadow:0 0 0 1px rgba(80,130,220,.12),0 0 40px rgba(40,80,200,.25)}
+}
+
+/* Texte */
+.brand-wrap{text-align:center;animation:fadeUp .9s cubic-bezier(.16,1,.3,1) .6s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.brand-name{
+  font-size:34px;font-weight:700;letter-spacing:.2em;
+  background:linear-gradient(180deg,#ffffff 0%,rgba(255,255,255,.55) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  display:flex;gap:0;
+}
+.brand-name span{opacity:0;display:inline-block;animation:letterIn .4s ease forwards}
+@keyframes letterIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.brand-tag{
+  font-size:10.5px;letter-spacing:.25em;text-transform:uppercase;
+  color:rgba(255,255,255,.25);margin-top:8px;font-weight:400;
+  animation:fadeTag 1s ease .9s both;
+}
+@keyframes fadeTag{from{opacity:0;letter-spacing:.1em}to{opacity:1;letter-spacing:.25em}}
+
+/* Progress */
+.progress-wrap{animation:fadeUp .8s ease .9s both;width:150px}
+.progress-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.progress-label{font-size:9.5px;color:rgba(255,255,255,.22);letter-spacing:.08em}
+.progress-pct{font-size:10px;font-weight:600;color:rgba(100,160,255,.7);font-variant-numeric:tabular-nums}
+.progress-track{height:2px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;position:relative}
+.progress-bar{
+  height:100%;border-radius:4px;width:0%;
+  background:linear-gradient(90deg,#2352bb,#4a9aff);
+  position:relative;
+}
+.progress-bar::after{
+  content:'';position:absolute;right:-1px;top:-3px;bottom:-3px;width:3px;
+  background:#78c0ff;border-radius:4px;
+  box-shadow:0 0 8px 3px rgba(120,192,255,.9);
+}
+
+/* Dots en bas */
+.dots{display:flex;gap:6px;animation:fadeUp .8s ease 1.1s both}
+.dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.15)}
+.dot.active{background:rgba(80,150,255,.8);box-shadow:0 0 6px 2px rgba(80,150,255,.6)}
+
+/* Flash de sortie */
+body.out{animation:exitScene .7s ease forwards}
+@keyframes exitScene{
+  0%{opacity:1;filter:brightness(1)}
+  40%{opacity:1;filter:brightness(3)}
+  100%{opacity:0;filter:brightness(1);transform:scale(1.06)}
+}
+</style>
+</head>
+<body>
+<div class="flash"></div>
+
+<div class="bg">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+</div>
+<div class="scanline"></div>
+<div class="stars" id="stars"></div>
+
+<div class="scene">
+  <div class="logo-outer">
+    <div class="orbit orbit-1"><div class="orbit-dot dot-blue"></div></div>
+    <div class="orbit orbit-2"><div class="orbit-dot dot-purple"></div></div>
+    <div class="orbit orbit-3"></div>
+    <div class="logo-glow"></div>
+    <div class="logo-box" id="logoBox">
+      <svg width="66" height="66" viewBox="0 0 100 100" fill="none">
+        <path d="M18 22 L50 78 L82 22" stroke="white" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="brand-wrap">
+    <div class="brand-name" id="brandName"></div>
+    <div class="brand-tag">Hébergement nouvelle génération</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span class="progress-label" id="pLabel">Initialisation…</span>
+      <span class="progress-pct" id="pPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar" id="pBar"></div>
+    </div>
+  </div>
+
+  <div class="dots">
+    <div class="dot active" id="d0"></div>
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
+  </div>
+</div>
+
+<script>
+// Étoiles
+const starsEl=document.getElementById('stars');
+for(let i=0;i<140;i++){
+  const d=document.createElement('div');
+  d.className='star';
+  const sz=Math.random()*1.8+.3;
+  d.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${Math.random()*5+2}s;animation-delay:${Math.random()*5}s`;
+  starsEl.appendChild(d);
+}
+
+// Lettres VHOST avec délai
+const letters='VHOST'.split('');
+const nameEl=document.getElementById('brandName');
+letters.forEach((l,i)=>{
+  const s=document.createElement('span');
+  s.textContent=l;
+  s.style.animationDelay=`.7s`;
+  // Chaque lettre décalée
+  setTimeout(()=>{
+    s.style.animationDelay='0s';
+    s.style.animation='letterIn .35s ease forwards';
+  },700+i*90);
+  s.style.opacity='0';
+  nameEl.appendChild(s);
+});
+
+// Glitch au début
+setTimeout(()=>{
+  const lb=document.getElementById('logoBox');
+  lb.classList.add('glitch');
+  setTimeout(()=>lb.classList.remove('glitch'),450);
+},300);
+
+// Progress bar animée
+const steps=[
+  {pct:0, label:'Initialisation…', dot:0},
+  {pct:28, label:'Connexion sécurisée…', dot:1},
+  {pct:62, label:'Chargement des services…', dot:2},
+  {pct:88, label:'Presque prêt…', dot:3},
+  {pct:100, label:'Bienvenue !', dot:3},
+];
+const pBar=document.getElementById('pBar');
+const pLabel=document.getElementById('pLabel');
+const pPct=document.getElementById('pPct');
+const dotEls=[0,1,2,3].map(i=>document.getElementById('d'+i));
+
+let currentPct=0;
+function animateTo(target,label,dotIdx,cb){
+  pLabel.textContent=label;
+  dotEls.forEach((d,i)=>{
+    d.classList.toggle('active',i===dotIdx||i<dotIdx);
+  });
+  const step=()=>{
+    if(currentPct<target){
+      currentPct=Math.min(currentPct+1.2,target);
+      pBar.style.width=currentPct+'%';
+      pPct.textContent=Math.round(currentPct)+'%';
+      requestAnimationFrame(step);
+    } else if(cb) cb();
+  };
+  step();
+}
+
+const delays=[1000,1600,2200,2900,3400];
+steps.forEach((s,i)=>{
+  setTimeout(()=>{
+    animateTo(s.pct,s.label,s.dot,i===steps.length-1?()=>{
+      setTimeout(()=>{
+        document.body.classList.add('out');
+        setTimeout(()=>location.replace('/accueil'),700);
+      },400);
+    }:null);
+  },delays[i]);
+});
+</script>
+</body>
+</html>

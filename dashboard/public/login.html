@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion — VHOST</title>
+<meta name="description" content="Connectez-vous a votre espace VHOST pour gerer votre bot Discord ou serveur Minecraft.">
+<meta name="robots" content="index, follow">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><img src="/assets/logo.svg" width="56" height="56" alt="VHOST" style="border-radius:14px;display:block;margin:0 auto;"></div>
+    <h1>Connexion</h1>
+    <p class="sub">Connecte-toi avec ton identifiant et ton mot de passe.</p>
+    <div class="auth-error" id="error"></div>
+    <form id="login-form">
+      <div class="field">
+        <label for="username">Identifiant</label>
+        <input type="text" id="username" placeholder="Ton identifiant" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-primary">Se connecter</button>
+    </form>
+  </div>
+</div>
+<script>
+const errorBox = document.getElementById('error');
+const params = new URLSearchParams(window.location.search);
+const err = params.get('error');
+if (err) { errorBox.textContent = err; errorBox.classList.add('show'); }
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorBox.classList.remove('show');
+  const body = {
+    username: document.getElementById('username').value.trim(),
+    password: document.getElementById('password').value,
+  };
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errorBox.textContent = data.error || 'Erreur inconnue.';
+      errorBox.classList.add('show');
+      return;
+    }
+    window.location.href = '/dashboard';
+  } catch {
+    errorBox.textContent = 'Connexion au serveur impossible, reessaie.';
+    errorBox.classList.add('show');
+  }
+});
+</script>
+</body>
+</html>
