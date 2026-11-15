@@ -81,11 +81,10 @@ body{font-family:"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;col
     <div class="center">
       <div class="h-xxl slam grad" style="--o:0.05s;font-size:230px">Forge</div>
       <div class="h-xxl slam grad" style="--o:0.25s;font-size:150px;letter-spacing:-4px">Réaliste</div>
-      <div class="sub fade" style="--o:0.9s;margin-top:50px">Forge façon Kingdom Come<br>pour Minecraft Bedrock</div>
     </div>
   </div>
 
-  <!-- 3. ÉTAPES 5.4 → 19.4 : cinq scènes de 2.8 s -->
+  <!-- 3. ÉTAPES 5.4 → 16.6 : quatre scènes de 2.8 s -->
   <div class="scene" style="--s:5.4s;--d:2.8s">
     <div class="center">
       <div class="stepnum slam" style="--o:0.05s">1</div>
@@ -114,16 +113,8 @@ body{font-family:"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;col
       <div class="stepdesc snap" style="--o:0.4s">Plonge la pièce encore chaude dans le bac d'eau.</div>
     </div>
   </div>
-  <div class="scene" style="--s:16.6s;--d:2.8s">
-    <div class="center">
-      <div class="stepnum slam" style="--o:0.05s">5</div>
-      <div class="steptitle snap" style="--o:0.2s">Affûte</div>
-      <div class="stepdesc snap" style="--o:0.4s">À la meule, jusqu'à +1,5 de dégâts sur le tranchant.</div>
-    </div>
-  </div>
-
-  <!-- 4. QUALITÉ 19.4 → 23.4 -->
-  <div class="scene" style="--s:19.4s;--d:4s">
+  <!-- 4. QUALITÉ 16.6 → 20.6 -->
+  <div class="scene" style="--s:16.6s;--d:4s">
     <div class="center">
       <div class="h-l snap" style="--o:0s;margin-bottom:50px">Une <span class="grad">qualité</span> à chaque pièce</div>
       <div class="card">
@@ -136,8 +127,8 @@ body{font-family:"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;col
     </div>
   </div>
 
-  <!-- 5. TEMPÉRATURE 23.4 → 26.4 -->
-  <div class="scene" style="--s:23.4s;--d:3s">
+  <!-- 5. TEMPÉRATURE 20.6 → 23.6 -->
+  <div class="scene" style="--s:20.6s;--d:3s">
     <div class="center">
       <div class="h-l snap" style="--o:0s;margin-bottom:70px">Lis la <span class="grad">couleur</span></div>
       <div class="tempbar snap" style="--o:0.2s">
@@ -149,22 +140,8 @@ body{font-family:"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;col
     </div>
   </div>
 
-  <!-- 6. MODS 26.4 → 29.4 -->
-  <div class="scene" style="--s:26.4s;--d:3s">
-    <div class="center">
-      <div class="h-l snap" style="--o:0s;margin-bottom:56px">Compatible <span class="grad">mods</span></div>
-      <div style="display:flex;flex-wrap:wrap;justify-content:center;width:960px">
-        <div class="chip slam" style="--o:0.2s"><span class="dot"></span>Armes</div>
-        <div class="chip slam" style="--o:0.4s"><span class="dot"></span>Outils</div>
-        <div class="chip slam" style="--o:0.6s"><span class="dot"></span>Armures</div>
-        <div class="chip slam" style="--o:0.8s"><span class="dot"></span>Équipements moddés</div>
-      </div>
-      <div class="sub fade" style="--o:1.2s;margin-top:50px">Tout objet non empilable avec durabilité peut être forgé.</div>
-    </div>
-  </div>
-
-  <!-- 7. CTA 29.4 → 33.4 -->
-  <div class="scene" style="--s:29.4s;--d:4s">
+  <!-- 6. CTA 23.6 → 27.6 -->
+  <div class="scene" style="--s:23.6s;--d:4s">
     <div class="center">
       <div class="sub snap" style="--o:0.1s">Forge Réaliste</div>
       <div class="h-xl grad slam" style="--o:0.3s;margin:26px 0 60px">v1.2.0</div>
@@ -182,7 +159,7 @@ window.seek = (t) => {
   const mk = document.getElementById('mk');
   if (mk) {
     // va-et-vient entre froid et blanc pendant la scène 23.4 → 26.4
-    const u = clamp((t - 23.4) / 3, 0, 1);
+    const u = clamp((t - 20.6) / 3, 0, 1);
     const p = 8 + 84 * (0.5 - 0.5 * Math.cos(Math.PI * 2 * u));
     mk.style.left = p.toFixed(2) + '%';
   }
