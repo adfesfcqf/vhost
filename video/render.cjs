@@ -14,8 +14,8 @@ try {
 }
 
 const FPS = 30;
-const WIDTH = 1080;
-const HEIGHT = 1920;
+const WIDTH = parseInt(process.env.W || '1080', 10);
+const HEIGHT = parseInt(process.env.H || '1920', 10);
 
 (async () => {
   const [page, dur, framesDir, mp4] = process.argv.slice(2);

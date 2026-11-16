@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Moyen Âge réaliste — bande-annonce des add-ons</title>
+<style>
+:root{--ember:#ff7a1a;--gold:#ffd27a;--parch:#e9d6a6;--ink:#2a1a0c;--stone:#4a4a52;--wood:#6b4423}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#07050a}
+body{font-family:"Inter","Segoe UI",Arial,sans-serif;color:#fbf3ea}
+.stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,#2a1206 0%,#0b0609 70%)}
+.scene{position:absolute;inset:0;opacity:0}
+.px{image-rendering:pixelated}
+.title{position:absolute;left:0;right:0;top:300px;text-align:center;font-size:110px;font-weight:900;letter-spacing:-3px;text-shadow:0 6px 0 #000}
+.sub{position:absolute;left:0;right:0;top:430px;text-align:center;font-size:48px;color:#e8d6bd}
+.block{position:absolute;width:64px;height:64px;background:var(--stone);box-shadow:inset -6px -6px 0 rgba(0,0,0,.35),inset 6px 6px 0 rgba(255,255,255,.08)}
+.parch{position:absolute;background:var(--parch);border:10px solid #7a5530;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.6);color:var(--ink)}
+.parch h2{font-size:64px;font-weight:900;margin-bottom:18px}
+.parch p{font-size:40px;line-height:1.35}
+.ingot{position:absolute;left:560px;top:700px;width:260px;height:70px;border-radius:12px;background:#ff3a10;box-shadow:0 0 90px #ff3a10}
+.anvil{position:absolute;left:520px;top:770px;width:340px;height:110px;background:#2b2b31;border-radius:8px 8px 0 0;box-shadow:inset 0 -18px 0 #1a1a1f}
+.hammer{position:absolute;left:600px;top:340px;width:180px;height:70px;background:#6b6b75;border-radius:8px;transform-origin:50% 100%}
+.spark{position:absolute;width:12px;height:12px;background:#ffd27a;box-shadow:0 0 14px #ffd27a}
+.wire{position:absolute;height:12px;background:#c9c9d6}
+.die{position:absolute;width:120px;height:160px;background:#333340;border:4px solid #55556a}
+.mandrel{position:absolute;width:150px;height:150px;border-radius:50%;border:16px solid #8a6a3a;background:transparent}
+.tree{position:absolute;width:90px;background:var(--wood)}
+.leaves{position:absolute;width:260px;height:200px;background:#2f6b2a;border-radius:22px}
+.water{position:absolute;width:800px;height:220px;background:#1f5fa6;box-shadow:inset 0 14px 0 #3c86d1}
+.flame{position:absolute;width:44px;height:44px;background:#ff7a1a;box-shadow:0 0 30px #ff7a1a;border-radius:50%}
+.bubble{position:absolute;width:16px;height:16px;border-radius:50%;background:#dff0ff;opacity:.8}
+.steam{position:absolute;width:40px;height:40px;border-radius:50%;background:#e8eef5;opacity:.5}
+.seal{position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#c8221b 0%,#7a0f0b 100%);color:#ffe6c4;font-size:110px;text-align:center;line-height:180px;font-weight:900;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.meat{position:absolute;width:160px;height:110px;background:#b5473a;border-radius:40px}
+.drop{position:absolute;width:14px;height:22px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#f2c46b}
+.bar{position:absolute;height:26px;border-radius:13px;background:#2a2a2a;overflow:hidden}
+.bar i{display:block;height:100%}
+.cap{position:absolute;left:0;right:0;bottom:70px;text-align:center}
+.cap span{display:inline-block;padding:14px 32px;background:rgba(0,0,0,.72);border-radius:10px;font-size:46px;font-weight:700}
+.brand{position:absolute;left:60px;top:44px;font-size:30px;font-weight:900;letter-spacing:6px;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="brand">MOYEN ÂGE RÉALISTE</div>
+
+  <!-- 0. INTRO 0 → 5 -->
+  <div class="scene" data-s="0" data-d="5">
+    <div class="parch" style="left:460px;top:200px;width:1000px;height:520px;padding:70px 90px">
+      <h2>Un Moyen Âge plus réaliste que jamais</h2>
+      <p>Forge, survie et parchemins : chaque geste compte.</p>
+    </div>
+  </div>
+
+  <!-- 1. FORGE 5 → 40 -->
+  <div class="scene" data-s="5" data-d="35" id="forge">
+    <!-- mur de pierre -->
+    <div id="wall"></div>
+    <!-- foyer -->
+    <div class="block" style="left:300px;top:560px;width:260px;height:200px;background:#2d2d33"></div>
+    <div class="flame" id="fl1" style="left:380px;top:640px"></div>
+    <div class="flame" id="fl2" style="left:430px;top:620px;width:30px;height:30px"></div>
+    <!-- lingot : rouge -> jaune pendant le soufflet -->
+    <div class="ingot" id="ingot"></div>
+    <div class="anvil"></div>
+    <div class="hammer" id="hammer"></div>
+    <div id="sparks"></div>
+    <!-- tréfilerie -->
+    <div class="die" style="left:1180px;top:580px"></div>
+    <div class="wire" id="wire" style="left:1300px;top:650px;width:0px"></div>
+    <div class="mandrel" id="mandrel" style="left:1450px;top:600px"></div>
+    <!-- bac de trempe -->
+    <div class="block" style="left:880px;top:820px;width:260px;height:110px;background:#555;border-radius:10px"></div>
+    <div class="water" style="left:900px;top:820px;width:220px;height:60px;background:#1f5fa6"></div>
+    <div id="steam"></div>
+    <div class="parch" id="qual" style="left:1210px;top:150px;width:520px;height:240px;padding:34px 40px;opacity:0">
+      <h2 style="font-size:48px">Maître ★★★★</h2>
+      <p style="font-size:34px">Une arme signée par son forgeron.</p>
+    </div>
+  </div>
+
+  <!-- 2. SURVIE 40 → 58 -->
+  <div class="scene" data-s="40" data-d="18" id="survie">
+    <div class="tree" id="trunk" style="left:300px;top:380px;height:420px"></div>
+    <div class="leaves" style="left:230px;top:200px"></div>
+    <div class="block" id="stump" style="left:300px;top:800px;width:90px;height:40px;background:#6b4423;opacity:0"></div>
+    <div class="water" style="left:1000px;top:760px"></div>
+    <div class="block" style="left:1040px;top:560px;width:160px;height:100px;background:#6b4423;border-radius:10px"></div>
+    <div class="flame" style="left:1140px;top:640px;width:70px;height:70px"></div>
+    <div class="flame" style="left:1150px;top:660px;width:50px;height:50px;background:#ffd27a;box-shadow:0 0 30px #ffd27a"></div>
+    <div id="bubbles"></div>
+    <div class="parch" id="survtxt" style="left:110px;top:120px;width:620px;height:180px;padding:28px 36px;opacity:0">
+      <p style="font-size:38px">Remplis ta gourde, puis fais bouillir l'eau.</p>
+    </div>
+  </div>
+
+  <!-- 3. PARCHEMINS 58 → 76 -->
+  <div class="scene" data-s="58" data-d="18" id="parch">
+    <div class="parch" style="left:280px;top:170px;width:1360px;height:700px;padding:70px 100px">
+      <h2 id="letter">Charte du village</h2>
+      <p id="letterbody" style="font-size:42px"></p>
+    </div>
+    <div class="seal" id="seal" style="left:1340px;top:730px">⚜</div>
+  </div>
+
+  <!-- 4. MONDE VIVANT 76 → 86 -->
+  <div class="scene" data-s="76" data-d="10" id="monde">
+    <div class="meat" style="left:300px;top:420px"></div>
+    <div class="drop" id="drop1" style="left:360px;top:560px"></div>
+    <div class="bar" style="left:260px;top:700px;width:300px"><i id="rotbar" style="background:#c44;width:100%"></i></div>
+    <div class="block" style="left:1180px;top:460px;width:220px;height:260px;background:#6b4423;border-radius:20px"></div>
+    <div class="bar" style="left:1160px;top:760px;width:260px"><i style="background:#8a2e5a;width:100%"></i></div>
+  </div>
+
+  <!-- 5. FIN 86 → 90 -->
+  <div class="scene" data-s="86" data-d="4">
+    <div class="title" style="top:380px">MOYEN ÂGE RÉALISTE</div>
+    <div class="sub" style="top:520px">Rejoins le serveur roleplay</div>
+  </div>
+
+  <div class="cap" id="cap"><span id="capt"></span></div>
+</div>
+
+<script>
+const SUBS = [
+  [0, 5, "Un Moyen Âge plus réaliste que jamais."],
+  [5, 9, "La forge s'allume au charbon et au briquet."],
+  [9, 14, "Le soufflet fait passer le métal du rouge au jaune."],
+  [14, 22, "Sur l'enclume, chaque coup compte."],
+  [22, 28, "Le bac de trempe fige la lame."],
+  [28, 35, "Les anneaux sont tirés à la filière, enroulés sur le mandrin."],
+  [35, 40, "Maître ★★★★ : chaque arme porte la signature de son forgeron."],
+  [40, 46, "Abats l'arbre à la hache, entaille après entaille."],
+  [46, 52, "Remplis ta gourde à la rivière."],
+  [52, 58, "Fais bouillir l'eau, sinon : dysenterie."],
+  [58, 66, "Écris la charte à la plume."],
+  [66, 76, "Scelle la lettre à la cire rouge."],
+  [76, 82, "Le gibier garde de la graisse."],
+  [82, 86, "La nourriture se périme, le vin et la bière se gardent."],
+  [86, 90, "Rejoins le serveur roleplay."]
+];
+const HITS = [20.0, 20.6, 21.2, 21.8, 22.4, 23.0, 23.6, 24.2];
+const STEAM_T = [26.0, 26.5, 27.0, 27.5, 28.0];
+const LETTER = "Au nom de la Maison de Valois, que nul ne rompe ce serment.";
+
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const ease = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+
+function sceneOf(t) {
+  // Fenêtres et fondus de chaque scène
+  document.querySelectorAll('.scene').forEach((el) => {
+    const s = +el.dataset.s, d = +el.dataset.d;
+    const local = t - s;
+    let o = 0;
+    if (local >= 0 && local <= d) o = Math.min(1, local / 0.35, (d - local) / 0.35);
+    el.style.opacity = String(clamp(o, 0, 1));
+  });
+}
+
+function animate(t) {
+  // Forge : soufflet (rouge -> jaune), frappes, étincelles, tréfilage, vapeur
+  const ingot = document.getElementById('ingot');
+  const heat = clamp((t - 9) / 5, 0, 1);
+  ingot.style.background = `linear-gradient(90deg,#ff3a10,${heat > 0.6 ? '#ffd27a' : '#ff7a1a'})`;
+  ingot.style.opacity = t >= 5 && t <= 30 ? '1' : '0';
+  const ham = document.getElementById('hammer');
+  let angle = 0;
+  const lastHit = HITS.filter((h) => h <= t).pop();
+  if (lastHit !== undefined && t - lastHit < 0.2) angle = 35 * (1 - (t - lastHit) / 0.2);
+  ham.style.transform = `rotate(${-angle}deg)`;
+  const sp = document.getElementById('sparks');
+  sp.innerHTML = '';
+  if (lastHit !== undefined && t - lastHit < 0.35) {
+    for (let i = 0; i < 9; i++) {
+      const k = (t - lastHit) / 0.35;
+      const a = (i / 9) * Math.PI * 2;
+      const r = 40 + 160 * k;
+      const d = document.createElement('div');
+      d.className = 'spark';
+      d.style.left = (690 + Math.cos(a) * r) + 'px';
+      d.style.top = (720 + Math.sin(a) * r * 0.6 - 60 * k) + 'px';
+      d.style.opacity = String(1 - k);
+      sp.appendChild(d);
+    }
+  }
+  // Tréfilage : le fil sort de la filière puis s'enroule
+  const wire = document.getElementById('wire');
+  const drawn = ease((t - 28) / 4);
+  wire.style.width = (drawn * 150) + 'px';
+  const mandrel = document.getElementById('mandrel');
+  mandrel.style.transform = `rotate(${(t - 28) * 300}deg)`;
+  // Vapeur de trempe
+  const st = document.getElementById('steam');
+  st.innerHTML = '';
+  STEAM_T.forEach((ts, i) => {
+    const k = (t - ts) / 1.6;
+    if (k > 0 && k < 1) {
+      const d = document.createElement('div');
+      d.className = 'steam';
+      d.style.left = (930 + i * 30) + 'px';
+      d.style.top = (760 - 140 * k) + 'px';
+      d.style.opacity = String(0.5 * (1 - k));
+      st.appendChild(d);
+    }
+  });
+  // Qualité
+  document.getElementById('qual').style.opacity = t >= 33 && t < 40 ? String(clamp((t - 33) / 0.5, 0, 1)) : '0';
+  // Survie : arbre qui tombe après les entailles
+  const trunk = document.getElementById('trunk');
+  const fell = clamp((t - 42) / 3, 0, 1);
+  trunk.style.transform = `rotate(${fell * 90}deg)`;
+  trunk.style.transformOrigin = '50% 100%';
+  document.getElementById('stump').style.opacity = t > 42 ? '1' : '0';
+  document.getElementById('survtxt').style.opacity = t >= 46 && t < 58 ? '1' : '0';
+  // Bulles d'ébullition
+  const bub = document.getElementById('bubbles');
+  bub.innerHTML = '';
+  if (t >= 53) {
+    for (let i = 0; i < 6; i++) {
+      const k = ((t - 53) * 0.8 + i * 0.17) % 1;
+      const d = document.createElement('div');
+      d.className = 'bubble';
+      d.style.left = (1070 + i * 22) + 'px';
+      d.style.top = (640 - 110 * k) + 'px';
+      bub.appendChild(d);
+    }
+  }
+  // Parchemin : écriture lettre par lettre, puis sceau brisé
+  const n = Math.floor(clamp((t - 60) / 0.09, 0, LETTER.length));
+  document.getElementById('letterbody').textContent = LETTER.slice(0, n);
+  const seal = document.getElementById('seal');
+  seal.style.opacity = t >= 66 ? '1' : '0';
+  seal.style.transform = t >= 71 ? 'scale(0.6) rotate(25deg)' : 'scale(1)';
+  seal.style.opacity = t >= 71 ? String(clamp(1 - (t - 71) / 0.6, 0, 1)) : seal.style.opacity;
+  // Monde vivant : graisse qui goutte, barre de fraîcheur qui baisse
+  const dr = document.getElementById('drop1');
+  dr.style.top = (560 + 130 * clamp((t - 78) / 1.6, 0, 1)) + 'px';
+  dr.style.opacity = t >= 78 && t < 81 ? '1' : '0';
+  document.getElementById('rotbar').style.width = (100 - clamp((t - 80) / 4, 0, 1) * 70) + '%';
+}
+
+window.seek = (t) => {
+  document.getAnimations?.().forEach((a) => a.pause());
+  sceneOf(t);
+  animate(t);
+  const cap = SUBS.find(([a, b]) => t >= a && t < b);
+  document.getElementById('capt').textContent = cap ? cap[2] : '';
+};
+window.seek(0);
+</script>
+</body>
+</html>
