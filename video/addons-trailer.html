@@ -9,6 +9,8 @@
 html,body{width:1920px;height:1080px;overflow:hidden;background:#07050a}
 body{font-family:"Inter","Segoe UI",Arial,sans-serif;color:#fbf3ea}
 .stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,#2a1206 0%,#0b0609 70%)}
+.wallbg{position:absolute;inset:0;opacity:.35}
+.wallbg div{position:absolute;box-shadow:inset 0 -5px 0 rgba(0,0,0,.35),inset 0 4px 0 rgba(255,255,255,.06)}
 .scene{position:absolute;inset:0;opacity:0}
 .px{image-rendering:pixelated}
 .title{position:absolute;left:0;right:0;top:300px;text-align:center;font-size:110px;font-weight:900;letter-spacing:-3px;text-shadow:0 6px 0 #000}
@@ -37,11 +39,16 @@ body{font-family:"Inter","Segoe UI",Arial,sans-serif;color:#fbf3ea}
 .bar i{display:block;height:100%}
 .cap{position:absolute;left:0;right:0;bottom:70px;text-align:center}
 .cap span{display:inline-block;padding:14px 32px;background:rgba(0,0,0,.72);border-radius:10px;font-size:46px;font-weight:700}
+.grain{position:absolute;inset:-50px;pointer-events:none;opacity:.10;background-image:radial-gradient(rgba(255,255,255,.9) 1px,transparent 1.2px),radial-gradient(rgba(0,0,0,.9) 1px,transparent 1.2px);background-size:3px 3px,5px 5px}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.75) 100%)}
+.ember{position:absolute;width:6px;height:6px;border-radius:50%;background:#ffb347;box-shadow:0 0 12px #ff7a1a}
 .brand{position:absolute;left:60px;top:44px;font-size:30px;font-weight:900;letter-spacing:6px;color:var(--gold)}
 </style>
 </head>
 <body>
 <div class="stage" id="stage">
+  <div id="wall" class="wallbg"></div>
+  <div id="embers"></div>
   <div class="brand">MOYEN ÂGE RÉALISTE</div>
 
   <!-- 0. INTRO 0 → 5 -->
@@ -119,6 +126,8 @@ body{font-family:"Inter","Segoe UI",Arial,sans-serif;color:#fbf3ea}
   </div>
 
   <div class="cap" id="cap"><span id="capt"></span></div>
+  <div class="vig"></div>
+  <div class="grain" id="grain"></div>
 </div>
 
 <script>
@@ -239,10 +248,74 @@ function animate(t) {
   document.getElementById('rotbar').style.width = (100 - clamp((t - 80) / 4, 0, 1) * 70) + '%';
 }
 
+// Décor : mur de pierre généré (graine fixe, même image à chaque rendu)
+(function buildWall() {
+  const w = document.getElementById('wall');
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let row = 0; row < 14; row++) {
+    for (let col = -1; col < 18; col++) {
+      const b = document.createElement('div');
+      const shade = 60 + Math.floor(rnd() * 26);
+      b.style.left = (col * 120 + (row % 2) * 60) + 'px';
+      b.style.top = (row * 80) + 'px';
+      b.style.width = '116px';
+      b.style.height = '76px';
+      b.style.background = `rgb(${shade},${shade},${shade + 6})`;
+      w.appendChild(b);
+    }
+  }
+})();
+
+// Braises qui montent au-dessus du foyer
+(function buildEmbers() {
+  const e = document.getElementById('embers');
+  for (let i = 0; i < 26; i++) {
+    const d = document.createElement('div');
+    d.className = 'ember';
+    d.dataset.i = i;
+    e.appendChild(d);
+  }
+})();
+
+function cameraAndFx(t) {
+  // Caméra : zoom lent sur la scène active
+  document.querySelectorAll('.scene').forEach((el) => {
+    const s = +el.dataset.s, d = +el.dataset.d;
+    const k = clamp((t - s) / d, 0, 1);
+    el.style.transform = `scale(${(1 + 0.06 * k).toFixed(4)})`;
+  });
+  // Secousse après chaque coup de marteau
+  const hit = HITS.filter((h) => h <= t).pop();
+  const shake = hit !== undefined && t - hit < 0.12 ? (1 - (t - hit) / 0.12) * 9 : 0;
+  const stage = document.getElementById('stage');
+  stage.style.transform = `translate(${(Math.sin(t * 91) * shake).toFixed(2)}px, ${(Math.cos(t * 77) * shake).toFixed(2)}px)`;
+  // Braises : montent et s'éteignent sur le foyer (x 380-460, y 640)
+  document.querySelectorAll('#embers .ember').forEach((el) => {
+    const i = +el.dataset.i;
+    const k = ((t * 0.45 + i * 0.137) % 1);
+    const onScene = t >= 5 && t <= 40;
+    el.style.opacity = onScene ? String(1 - k) : '0';
+    el.style.left = (400 + Math.sin(i * 12.9 + t * 2) * 30) + 'px';
+    el.style.top = (640 - 260 * k) + 'px';
+    el.style.transform = `scale(${(1 - 0.6 * k).toFixed(2)})`;
+  });
+  // Grain qui change à chaque image
+  const g = document.getElementById('grain');
+  g.style.transform = `translate(${(Math.sin(t * 40) * 3).toFixed(1)}px, ${(Math.cos(t * 33) * 3).toFixed(1)}px)`;
+  // Titre d'intro qui s'écrit lettre par lettre
+  const h = document.querySelector('[data-s="0"] h2');
+  if (h) {
+    const full = 'Un Moyen Âge plus réaliste que jamais';
+    h.textContent = full.slice(0, Math.floor(clamp((t - 0.3) / 0.06, 0, full.length)));
+  }
+}
+
 window.seek = (t) => {
   document.getAnimations?.().forEach((a) => a.pause());
   sceneOf(t);
   animate(t);
+  cameraAndFx(t);
   const cap = SUBS.find(([a, b]) => t >= a && t < b);
   document.getElementById('capt').textContent = cap ? cap[2] : '';
 };

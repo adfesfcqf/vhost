@@ -86,6 +86,25 @@ for h in HITS:
 for s in STEAM_T:
     add(s, 1.2, steam())
 
+# Batterie : tambour grave sur chaque temps à partir de 5 s
+def kick(t):
+    ph = 2 * math.pi * (60 * t + 40 * (1 - math.exp(-t / 0.04)))
+    return math.sin(ph) * math.exp(-t / 0.12) * 0.5
+
+t = 5.0
+while t < DUR - 3:
+    add(t, 0.3, kick)
+    t += BEAT
+
+# Arpège de luth en croches, sur les accords (une note toutes les demi-mesures)
+ARP = [D4, F4, A4, C5, A4, F4]
+t = 5.0
+j = 0
+while t < DUR - 3:
+    add(t, 0.5, pluck(ARP[j % len(ARP)] / 2, 0.10))
+    j += 1
+    t += BEAT / 2
+
 # Fondus d'entrée et de sortie
 for i in range(N):
     tt = i / SR
