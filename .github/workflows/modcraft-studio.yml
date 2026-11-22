@@ -1,0 +1,30 @@
+name: ModCraft Studio (installateur Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mc-mod-studio/**"
+      - ".github/workflows/modcraft-studio.yml"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: mc-mod-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mc-mod-studio/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npx electron-builder --win nsis --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ModCraft-Studio-Setup
+          path: mc-mod-studio/dist/*.exe
+          if-no-files-found: error

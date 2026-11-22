@@ -1,0 +1,53 @@
+{
+  "name": "modcraft-studio",
+  "productName": "ModCraft Studio",
+  "version": "1.0.0",
+  "description": "Éditeur ultra simple pour créer des mods Minecraft (Fabric) avec assistant IA intégré.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/smoke.js",
+    "dist": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac"
+  },
+  "license": "MIT",
+  "build": {
+    "appId": "com.modcraft.studio",
+    "productName": "ModCraft Studio",
+    "files": [
+      "src/**/*",
+      "package.json",
+      "node_modules/**/*",
+      "!node_modules/monaco-editor/{esm,dev,min-maps}/**",
+      "!**/*.{map,md,d.ts,d.mts}"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "icon": "src/renderer/icon.png",
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
+    "monaco-editor": "^0.52.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "electron": "^38.2.0",
+    "electron-builder": "^26.0.12"
+  }
+}
