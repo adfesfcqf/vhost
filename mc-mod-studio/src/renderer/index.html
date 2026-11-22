@@ -17,6 +17,7 @@
         <button id="btnNew" class="big primary">✨ Créer un nouvel add-on</button>
         <button id="btnOpen" class="big">📂 Ouvrir un add-on</button>
       </div>
+      <button id="btnImport" class="import-zone"><span>📥 Ouvrir un fichier <b>.mcaddon</b> ou <b>.mcpack</b></span><small>ou glisse-le n'importe où dans cette fenêtre</small></button>
       <div id="recentWrap" class="recent hidden">
         <h3>Add-ons récents</h3>
         <ul id="recentList"></ul>
@@ -129,6 +130,7 @@
     </div>
   </div>
   <div id="toast" class="toast hidden"></div>
+  <div id="dropOverlay" class="drop-overlay hidden"><div>📥 Lâche ton .mcaddon ou .mcpack ici</div></div>
 
   <script src="markdown.js"></script>
   <script src="pixel.js"></script>

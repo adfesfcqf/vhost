@@ -8,6 +8,7 @@ Un éditeur façon VS Code, **fait uniquement pour créer des add-ons Minecraft 
 - 🤖 **Assistant IA (Claude)** : « Fais que mon épée mette le feu aux monstres ». L'IA lit tes fichiers, écrit le JSON et les scripts JavaScript (`@minecraft/server`), vérifie et corrige. Bouton **↩ Annuler** pour défaire ses changements.
 - ✔ **Vérifier** : trouve les JSON cassés, textures manquantes, traductions oubliées, erreurs de syntaxe dans les scripts. Bouton **« Demander à l'IA de corriger »**.
 - ▶ **Tester dans Minecraft** : copie l'add-on dans les dossiers de développement de Minecraft Bedrock et lance le jeu.
+- 📥 **Ouvrir un `.mcaddon` / `.mcpack`** : bouton sur l'accueil, glisser-déposer sur la fenêtre, ou clic droit sur le fichier → **Ouvrir dans ModCraft Studio** (le double-clic reste pour Minecraft). Une copie modifiable est créée dans `Documents/ModCraft`.
 - 📦 **Exporter** : crée un fichier `.mcaddon` (double-clic = installé dans Minecraft, à partager avec tes amis).
 
 ## Ce qu'il faut

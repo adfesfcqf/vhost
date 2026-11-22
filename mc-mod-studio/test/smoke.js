@@ -8,7 +8,8 @@ const gen = require('../src/lib/generators');
 const files = require('../src/lib/files');
 const { checkAddon } = require('../src/lib/check');
 const mc = require('../src/lib/minecraft');
-const { readZip } = require('../src/lib/zip');
+const { readZip, createZip } = require('../src/lib/zip');
+const { importAddon } = require('../src/lib/importer');
 const { Assistant } = require('../src/lib/agent');
 
 const J = (root, rel) => parseJsonLoose(fs.readFileSync(path.join(root, rel), 'utf8'));
@@ -128,6 +129,48 @@ const J = (root, rel) => parseJsonLoose(fs.readFileSync(path.join(root, rel), 'u
   }
   assert.ok(!J(root, 'RP/textures/item_texture.json').texture_data.super_rubis_saphir);
   assert.ok(checkAddon(root, meta).ok);
+
+  // ---- Import de .mcaddon / .mcpack ----
+  const imp = path.join(tmp, 'imports');
+  fs.mkdirSync(imp);
+  // 1) le .mcaddon exporté plus haut se réimporte à l'identique
+  const i1 = importAddon(out, imp);
+  const m1 = readMeta(i1.root);
+  assert.strictEqual(m1.modId, 'super_rubis');
+  assert.strictEqual(m1.modName, 'Super Rubis');
+  assert.deepStrictEqual(J(i1.root, 'BP/items/rubis.json'), J(root, 'BP/items/rubis.json'));
+  assert.ok(checkAddon(i1.root, m1).ok);
+  assert.deepStrictEqual(i1.warnings, []);
+  // 2) .mcaddon contenant deux .mcpack (format fréquent sur internet), dossiers imbriqués
+  const bpZip = createZip(require('../src/lib/zip').folderEntries(path.join(root, 'BP'), 'Mon Pack BP'));
+  const rpZip = createZip(require('../src/lib/zip').folderEntries(path.join(root, 'RP'), 'Mon Pack RP'));
+  const nested = path.join(tmp, 'nested.mcaddon');
+  fs.writeFileSync(nested, createZip([{ name: 'Mon Pack BP.mcpack', data: bpZip }, { name: 'Mon Pack RP.mcpack', data: rpZip }]));
+  const i2 = importAddon(nested, imp);
+  assert.ok(fs.existsSync(path.join(i2.root, 'BP/manifest.json')) && fs.existsSync(path.join(i2.root, 'RP/textures/items/rubis.png')));
+  assert.strictEqual(readMeta(i2.root).modId, 'super_rubis');
+  assert.notStrictEqual(i2.root, i1.root, 'pas d\'écrasement d\'un projet existant');
+  // 3) .mcpack avec seulement un pack de ressources (manifest à la racine)
+  const rpOnly = path.join(tmp, 'textures.mcpack');
+  fs.writeFileSync(rpOnly, createZip(require('../src/lib/zip').folderEntries(path.join(root, 'RP'), '.').map((e) => ({ ...e, name: e.name.replace(/^\.\//, '') }))));
+  const i3 = importAddon(rpOnly, imp);
+  assert.ok(i3.warnings.length === 1);
+  const m3 = readMeta(i3.root);
+  assert.ok(gen.addItem(i3.root, m3, { name: 'Test' }).id === 'test');
+  assert.ok(checkAddon(i3.root, m3).ok, JSON.stringify(checkAddon(i3.root, m3).errors));
+  // 4) protection contre les chemins "../" dans l'archive
+  const evil = path.join(tmp, 'evil.mcpack');
+  fs.writeFileSync(evil, createZip([
+    { name: 'manifest.json', data: Buffer.from(JSON.stringify({ format_version: 2, header: { name: 'Evil', uuid: 'a', version: [1, 0, 0] }, modules: [{ type: 'data', uuid: 'b', version: [1, 0, 0] }] })) },
+    { name: '../../echappe.txt', data: Buffer.from('x') },
+  ]));
+  importAddon(evil, imp);
+  assert.ok(!fs.existsSync(path.join(tmp, 'echappe.txt')) && !fs.existsSync(path.join(imp, '..', '..', 'echappe.txt')));
+  // 5) fichiers invalides
+  fs.writeFileSync(path.join(tmp, 'pasunzip.mcpack'), 'bonjour');
+  assert.throws(() => importAddon(path.join(tmp, 'pasunzip.mcpack'), imp), /archive valide/);
+  fs.writeFileSync(path.join(tmp, 'vide.mcaddon'), createZip([{ name: 'lisezmoi.txt', data: Buffer.from('x') }]));
+  assert.throws(() => importAddon(path.join(tmp, 'vide.mcaddon'), imp), /Aucun pack/);
 
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('✔ Tous les tests passent');

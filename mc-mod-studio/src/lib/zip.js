@@ -91,19 +91,43 @@ function folderEntries(dir, prefix) {
   return out;
 }
 
-/** Lecture minimale (pour les tests) : renvoie { nom: Buffer } */
-function readZip(buf) {
+/**
+ * Lit une archive ZIP via son répertoire central (gère les "data descriptors").
+ * Renvoie { "chemin/fichier": Buffer } (les dossiers sont ignorés).
+ */
+function readZip(buf, { maxTotal = 1024 * 1024 * 1024 } = {}) {
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Ce fichier n\'est pas une archive valide (.mcaddon / .mcpack = ZIP).');
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
   const files = {};
-  let i = 0;
-  while (buf.readUInt32LE(i) === 0x04034b50) {
-    const method = buf.readUInt16LE(i + 8);
-    const csize = buf.readUInt32LE(i + 18);
-    const nlen = buf.readUInt16LE(i + 26);
-    const xlen = buf.readUInt16LE(i + 28);
-    const name = buf.slice(i + 30, i + 30 + nlen).toString('utf8');
-    const data = buf.slice(i + 30 + nlen + xlen, i + 30 + nlen + xlen + csize);
-    files[name] = method === 8 ? zlib.inflateRawSync(data) : data;
-    i += 30 + nlen + xlen + csize;
+  let total = 0;
+  for (let n = 0; n < count; n++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('Archive ZIP abîmée.');
+    const flags = buf.readUInt16LE(p + 8);
+    const method = buf.readUInt16LE(p + 10);
+    const csize = buf.readUInt32LE(p + 20);
+    const usize = buf.readUInt32LE(p + 24);
+    const nlen = buf.readUInt16LE(p + 28);
+    const xlen = buf.readUInt16LE(p + 30);
+    const clen = buf.readUInt16LE(p + 32);
+    const off = buf.readUInt32LE(p + 42);
+    const nameBuf = buf.slice(p + 46, p + 46 + nlen);
+    const name = (flags & 0x800 ? nameBuf.toString('utf8') : nameBuf.toString('latin1')).replace(/\\/g, '/');
+    p += 46 + nlen + xlen + clen;
+    if (name.endsWith('/')) continue;
+    if (flags & 1) throw new Error('Les archives protégées par mot de passe ne sont pas prises en charge.');
+    total += usize;
+    if (total > maxTotal) throw new Error('Archive trop grosse.');
+    const lnlen = buf.readUInt16LE(off + 26);
+    const lxlen = buf.readUInt16LE(off + 28);
+    const data = buf.slice(off + 30 + lnlen + lxlen, off + 30 + lnlen + lxlen + csize);
+    if (method === 0) files[name] = Buffer.from(data);
+    else if (method === 8) files[name] = zlib.inflateRawSync(data);
+    else throw new Error(`Méthode de compression non prise en charge (${method}) pour ${name}.`);
   }
   return files;
 }

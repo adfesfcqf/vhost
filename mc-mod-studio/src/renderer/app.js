@@ -142,6 +142,44 @@ async function newModWizard() {
   if (res.warnings && res.warnings.length) setTimeout(() => toast(res.warnings[res.warnings.length - 1], 'warn'), 1500);
 }
 
+async function importAddon(file) {
+  if (state.project && state.tabs.some((t) => t.dirty)) {
+    const ok = await confirmBox('Fichiers non enregistrés', 'Enregistrer tes fichiers avant d\'ouvrir l\'autre add-on ?', 'Enregistrer');
+    if (ok) await saveAll();
+  }
+  toast('Ouverture de l\'add-on…');
+  try {
+    const r = await api.importAddon(file);
+    if (!r) return;
+    enterWorkspace(r);
+    toast(`« ${r.meta.modName} » est ouvert ✔ (copie dans Documents/ModCraft)`, 'ok');
+    if (r.warnings && r.warnings.length) setTimeout(() => toast(r.warnings.join(' '), 'warn'), 2500);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// Glisser-déposer d'un .mcaddon / .mcpack (ou d'un dossier) sur la fenêtre
+let dragDepth = 0;
+const isFileDrag = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', (e) => { if (!isFileDrag(e)) return; e.preventDefault(); dragDepth++; $('#dropOverlay').classList.remove('hidden'); });
+window.addEventListener('dragover', (e) => { if (isFileDrag(e)) e.preventDefault(); });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('#dropOverlay').classList.add('hidden'); } });
+window.addEventListener('drop', (e) => {
+  if (!isFileDrag(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  $('#dropOverlay').classList.add('hidden');
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const p = api.pathForFile(f);
+  if (!p) return toast('Impossible de lire ce fichier.', 'error');
+  if (/\.(mcaddon|mcpack|zip)$/i.test(p)) importAddon(p);
+  else if (!/\.[a-z0-9]+$/i.test(p)) api.openProject(p).then(enterWorkspace).catch(() => importAddon(p)); // dossier
+  else toast('Glisse un fichier .mcaddon ou .mcpack.', 'warn');
+});
+api.onOpenFile((f) => importAddon(f));
+
 async function openProjectDialog() {
   const d = await api.pickFolder('Ouvrir le dossier d\'un add-on');
   if (d) openProject(d);
@@ -854,6 +892,7 @@ async function openSettings() {
 function bind() {
   $('#btnNew').onclick = newModWizard;
   $('#btnOpen').onclick = openProjectDialog;
+  $('#btnImport').onclick = () => importAddon();
   $('#btnSettingsHome').onclick = openSettings;
   $('#btnSettings').onclick = openSettings;
   $('#btnHome').onclick = goHome;
@@ -914,4 +953,7 @@ function bind() {
 }
 
 bind();
-refreshHome();
+refreshHome().then(async () => {
+  const f = await api.pendingOpen(); // lancé via "Ouvrir avec" sur un .mcaddon
+  if (f) importAddon(f);
+});

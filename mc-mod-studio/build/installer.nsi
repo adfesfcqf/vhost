@@ -47,6 +47,12 @@ VIAddVersionKey /LANG=${LANG_FRENCH} "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=${LANG_FRENCH} "ProductVersion" "${VERSION}"
 VIAddVersionKey /LANG=${LANG_FRENCH} "LegalCopyright" "ModCraft Studio"
 
+!macro AddVerb EXT
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\ModCraftStudio" "" "Ouvrir dans ModCraft Studio"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\ModCraftStudio" "Icon" "$INSTDIR\icon.ico"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\${EXT}\shell\ModCraftStudio\command" "" '"$INSTDIR\${EXE}" "%1"'
+!macroend
+
 Section "Installer"
   ; Ferme l'appli si elle tourne déjà (mise à jour)
   nsExec::Exec 'taskkill /F /IM "${EXE}"'
@@ -70,6 +76,17 @@ Section "Installer"
   WriteRegStr HKCU "${UNKEY}" "UninstallString" '"$INSTDIR\Desinstaller.exe"'
   WriteRegDWORD HKCU "${UNKEY}" "NoModify" 1
   WriteRegDWORD HKCU "${UNKEY}" "NoRepair" 1
+
+  ; Clic droit sur un .mcaddon / .mcpack -> "Ouvrir dans ModCraft Studio"
+  ; (le double-clic reste pour Minecraft : on ne change pas l'application par défaut)
+  !insertmacro AddVerb ".mcaddon"
+  !insertmacro AddVerb ".mcpack"
+  WriteRegStr HKCU "Software\Classes\Applications\${EXE}\shell\open\command" "" '"$INSTDIR\${EXE}" "%1"'
+  WriteRegStr HKCU "Software\Classes\Applications\${EXE}\SupportedTypes" ".mcaddon" ""
+  WriteRegStr HKCU "Software\Classes\Applications\${EXE}\SupportedTypes" ".mcpack" ""
+  WriteRegStr HKCU "Software\Classes\.mcaddon\OpenWithList\${EXE}" "" ""
+  WriteRegStr HKCU "Software\Classes\.mcpack\OpenWithList\${EXE}" "" ""
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 SectionEnd
 
 Section "Uninstall"
@@ -80,4 +97,9 @@ Section "Uninstall"
   RMDir /r "$INSTDIR"
   DeleteRegKey HKCU "${UNKEY}"
   DeleteRegKey HKCU "Software\ModCraftStudio"
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\.mcaddon\shell\ModCraftStudio"
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\.mcpack\shell\ModCraftStudio"
+  DeleteRegKey HKCU "Software\Classes\Applications\${EXE}"
+  DeleteRegKey HKCU "Software\Classes\.mcaddon\OpenWithList\${EXE}"
+  DeleteRegKey HKCU "Software\Classes\.mcpack\OpenWithList\${EXE}"
 SectionEnd

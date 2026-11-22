@@ -1,5 +1,5 @@
 // Pont sécurisé entre l'interface et le processus principal.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const call = async (channel, ...args) => {
   const r = await ipcRenderer.invoke(channel, ...args);
@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('studio', {
 
   createProject: (opts) => call('project:create', opts),
   openProject: (root) => call('project:open', root),
+  importAddon: (file) => call('project:import', file || null),
+  pendingOpen: () => call('project:pendingOpen'),
+  onOpenFile: (cb) => on('project:openFile', cb),
+  pathForFile: (file) => webUtils.getPathForFile(file),
   tree: () => call('project:tree'),
   reveal: (rel) => call('project:reveal', rel),
 

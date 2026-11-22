@@ -7,11 +7,17 @@ const template = require('./lib/template');
 const gen = require('./lib/generators');
 const { checkAddon, formatReport } = require('./lib/check');
 const mc = require('./lib/minecraft');
+const { importAddon, SUPPORTED } = require('./lib/importer');
 const { Assistant, MODELS, DEFAULT_MODEL } = require('./lib/agent');
 
 let win;
 let project = null; // { root, meta }
 let assistant = null;
+let pendingOpen = null; // fichier .mcaddon/.mcpack passé au lancement ("Ouvrir avec")
+
+function fileFromArgs(argv) {
+  return argv.slice(1).find((a) => !a.startsWith('-') && SUPPORTED.test(a) && fs.existsSync(a)) || null;
+}
 
 // ---------- Réglages ----------
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
@@ -168,6 +174,27 @@ function registerIpc() {
     return { ...openProject(r.root), warnings: r.warnings };
   });
   handle('project:open', async (root) => openProject(root));
+  handle('project:import', async (file) => {
+    if (!file) {
+      const r = await dialog.showOpenDialog(win, {
+        title: 'Ouvrir un .mcaddon ou un .mcpack',
+        filters: [{ name: 'Add-on Minecraft', extensions: ['mcaddon', 'mcpack', 'zip'] }],
+        properties: ['openFile'],
+      });
+      if (r.canceled) return null;
+      file = r.filePaths[0];
+    }
+    if (!fs.existsSync(file)) throw new Error('Fichier introuvable : ' + file);
+    const parentDir = path.join(app.getPath('documents'), 'ModCraft');
+    fs.mkdirSync(parentDir, { recursive: true });
+    const r = importAddon(file, parentDir);
+    return { ...openProject(r.root), warnings: r.warnings };
+  });
+  handle('project:pendingOpen', async () => {
+    const f = pendingOpen;
+    pendingOpen = null;
+    return f;
+  });
   handle('project:tree', async () => files.tree(requireProject().root));
   handle('project:reveal', async (rel) => {
     shell.showItemInFolder(files.resolveInside(requireProject().root, rel || '.'));
@@ -249,6 +276,21 @@ function registerIpc() {
   handle('ai:stop', async () => { if (assistant) assistant.stop(); return true; });
   handle('ai:reset', async () => { if (assistant) assistant.reset(); return true; });
   handle('ai:undo', async () => (assistant ? assistant.undoLastTurn() : []));
+}
+
+// Une seule fenêtre : si on ouvre un .mcaddon alors que l'appli tourne déjà, on le passe à la fenêtre existante.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  pendingOpen = fileFromArgs(process.argv);
+  app.on('second-instance', (_e, argv) => {
+    const f = fileFromArgs(argv);
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+      if (f) send('project:openFile', f);
+    }
+  });
 }
 
 app.whenReady().then(() => {

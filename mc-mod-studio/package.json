@@ -1,7 +1,7 @@
 {
   "name": "modcraft-studio",
   "productName": "ModCraft Studio",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Éditeur ultra simple pour créer des add-ons Minecraft Bedrock, avec assistant IA intégré.",
   "main": "src/main.js",
   "scripts": {
