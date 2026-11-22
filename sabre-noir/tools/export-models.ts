@@ -159,12 +159,13 @@ async function build(path: string, cfg: any = {}) {
   return obj as THREE.Object3D;
 }
 
-G.exportCharacter = async (path: string, pose: string | null, target = 9000, cfg: any = {}) => {
+G.exportCharacter = async (path: string, pose: string | null, target = 9000, cfg: any = {}, drop: string = '') => {
   G.__FORCE_POSE = pose;
   const obj = await build(path, cfg);
   G.__FORCE_POSE = null;
   const sk = G.__LAST_SOL.sk;
-  const parts = collect(obj);
+  const dre = drop ? new RegExp(drop, 'i') : null;
+  const parts = collect(obj, undefined, dre ? (n) => !dre.test(n) : undefined);
   const names = [...new Set(parts.map((p) => p.name))];
   const before = parts.reduce((s, p) => s + triCount(p.geo), 0);
   const tris = lighten(parts, target, 0.02);
@@ -184,16 +185,16 @@ G.exportCharacter = async (path: string, pose: string | null, target = 9000, cfg
   return { glb: await toGLB(root), before, tris, names };
 };
 
-G.exportFP = async (path: string, target = 9000) => {
+G.exportFP = async (path: string, target = 9000, cfg: any = {}, fo: any = {}) => {
   G.__FORCE_POSE = 'aim';
-  const obj = await build(path);
+  const obj = await build(path, cfg);
   G.__FORCE_POSE = null;
   const { sk, wm } = G.__LAST_SOL;
   const inv = (wm as THREE.Matrix4).clone().invert();
   const arm = (s: string) => [sk.arm[s].shoulder, sk.arm[s].elbow, sk.arm[s].wrist] as THREE.Vector3[];
   const arms = { l: arm('l'), r: arm('r') };
   // keep weapon + hands + sleeves (triangles near the arm segments, outside the shoulder)
-  let parts = collect(obj, undefined, (n) => !/head|helmet|neck|boot|trouser|belt|pouch|canteen|shovel|bread|strap|pack|kit|grenade|holster|bag|mess/i.test(n));
+  let parts = collect(obj, undefined, (n) => !/head|helmet|neck|boot|trouser|belt|pouch|canteen|shovel|bread|strap|pack|kit|grenade|holster|bag|mess|pocket|suspender|braces|skatka|^part$|gear:/i.test(n));
   const near = (p: THREE.Vector3) => {
     let best = 9;
     for (const s of ['l', 'r'] as const) {
@@ -216,6 +217,16 @@ G.exportFP = async (path: string, target = 9000) => {
     p.geo.setIndex(keep);
   }
   parts = parts.filter((p) => p.geo.index!.count > 0);
+  if (fo.onlyRight) {
+    parts = parts.filter((p) => !/weapon|sling|hand-l|cuff-l/i.test(p.name));
+    for (const p of parts) if (/tunic/i.test(p.name)) {
+      const pos = p.geo.attributes.position; const idx = p.geo.index!.array; const keep: number[] = []; const A = V();
+      for (let i = 0; i < idx.length; i += 3) { A.fromBufferAttribute(pos, idx[i]); const [a, b, c] = arms.r; if (Math.min(closestOnSeg(A, a, b).d, closestOnSeg(A, b, c).d) < 0.09) keep.push(idx[i], idx[i + 1], idx[i + 2]); }
+      p.geo.setIndex(keep);
+    }
+  }
+  const sleeve = new THREE.MeshStandardMaterial({ color: new THREE.Color(fo.sleeve ?? 0x6d6648), roughness: 0.95 }); sleeve.name = 'sleeve';
+  for (const p of parts) if (/tunic|cuff/i.test(p.name)) p.mat = sleeve;
   for (const p of parts) p.geo.applyMatrix4(inv);
   const tris = lighten(parts, target, 0.004);
   // sights (weapon-local): front = highest point near the muzzle; rear = highest point on the receiver

@@ -1,8 +1,8 @@
-# Crédits des ressources réalistes (mission 1)
+# Crédits des ressources réalistes
 
 ## Modèles 3D — Muster WWII Model Archive
-Soldats, armes (Mosin-Nagant, PPSh-41, Kar98k, MP40, MG42, Thompson, DP-27, Lee-Enfield), camion Opel Blitz,
-canon Flak 36 et grenade à manche : modélisés par le projet Muster (https://github.com/Kenton-GMI/muster-ww2),
+Soldats, prisonnier, armes (Mosin-Nagant, PPSh-41, Kar98k, MP40, MG42, M1 Garand, Thompson, BAR, Lee-Enfield, Sten, Bren, DP-27),
+camion Opel Blitz, Kübelwagen, char Panzer IV (épave), canon Flak 36 et grenade à manche : modélisés par le projet Muster (https://github.com/Kenton-GMI/muster-ww2),
 puis exportés en glTF, allégés, articulés (jambes et bassin) et posés « en joue » pour ce jeu
 (voir `tools/export-models.ts` et `tools/muster-aim-pose.patch`).
 
@@ -32,9 +32,22 @@ SOFTWARE.
 
 ## Sons d'armes — The Free Firearm Sound Library (CC0 1.0)
 Enregistrements de Ben Jaszczak (Kickstarter 2014), miroir : https://github.com/buddingmonkey/FreeFirearmsSFXLibrary.
-Mosin-Nagant (fusil), PPSh (mitraillette), Colt 1911 (pistolet), Carl Gustav M45 (fusil-mitrailleur de Kroll) :
+Mosin-Nagant, Arisaka (pour le Kar98k), Springfield 1917 (pour le Lee-Enfield), SKS (pour le M1 Garand), PPSh,
+Carl Gustav M45 (MP40, Thompson, Sten), AK-47 (fusils-mitrailleurs) et Colt 1911 :
 tirs côté tireur, proche, moyen et lointain, culasse, chargeurs. Découpés avec `tools/prepare-sounds.py`.
 
 ## Pas, douilles, voix, impacts, ambiances — Oculus Audio Pack 1 (CC BY 4.0)
 © Meta / Oculus, publié dans https://github.com/facebookincubator/Meta-open-sound
 (licence : https://creativecommons.org/licenses/by/4.0/). Extraits découpés et réencodés en MP3.
+
+## Textures photo — ambientCG (CC0 1.0)
+Ground037, Ground103, Grass004, Plaster002, Plaster007, Bricks097, Bricks102, Concrete047A, Wood092, Metal055A, Rock063
+(https://ambientcg.com), via les dépôts CC0 petroulacl/fps-asset-kit et petroulacl/fps-buildings-env-kit. Réduites en 1024/512 px.
+
+## Ciel — Poly Haven (CC0 1.0)
+« Kloppenheim 06 (pure sky) », HDRI de Poly Haven (https://polyhaven.com), converti en image équirectangulaire.
+
+## Créé pour le jeu
+Pistolet Colt M1911 (modèle 3D), herbe, silhouettes de pins, tuiles de toit, sacs de sable, impacts de balles,
+traces de sang, brûlures, fumée, réverbérations (village, forêt, pierre, intérieur), claquement supersonique,
+acouphène après explosion, battements de cœur, guerre lointaine.
