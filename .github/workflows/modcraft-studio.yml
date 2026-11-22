@@ -1,0 +1,56 @@
+name: ModCraft Studio (installateur Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mc-mod-studio/**"
+      - ".github/workflows/modcraft-studio.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: mc-mod-studio
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mc-mod-studio/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Application Windows
+        run: npx electron-builder --win dir --x64 --publish never
+      - name: Installateur (NSIS, en français, clic droit sur .mcaddon/.mcpack)
+        run: |
+          $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          if (-not (Test-Path $nsis)) { choco install nsis -y --no-progress; $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe" }
+          Push-Location build
+          & $nsis /V2 "/DVERSION=$v" "/DSRC=..\dist\win-unpacked" "/DOUT=..\dist\ModCraft-Studio-Setup-$v.exe" installer.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis a échoué" }
+          Pop-Location
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ModCraft-Studio-Setup
+          path: mc-mod-studio/dist/ModCraft-Studio-Setup-*.exe
+          if-no-files-found: error
+      - name: Publier dans les Releases (lien de téléchargement direct)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: modcraft-v${{ env.VERSION }}
+          name: ModCraft Studio ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            **Télécharger :** clique sur `ModCraft-Studio-Setup-${{ env.VERSION }}.exe` ci-dessous, puis double-clique dessus.
+            Si Windows affiche « Windows a protégé votre ordinateur » : *Informations complémentaires* → *Exécuter quand même*.
+          files: mc-mod-studio/dist/ModCraft-Studio-Setup-*.exe

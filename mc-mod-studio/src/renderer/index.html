@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:;" />
+  <title>ModCraft Studio</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="../../node_modules/monaco-editor/min/vs/editor/editor.main.css" />
+</head>
+<body>
+  <!-- ===== Écran d'accueil ===== -->
+  <section id="home" class="screen">
+    <div class="home-card">
+      <div class="logo"><span class="cube"></span>ModCraft <b>Studio</b></div>
+      <p class="tagline">Crée tes propres add-ons pour <b>Minecraft Bedrock</b>, simplement. Avec un assistant IA pour t'aider.</p>
+      <div class="home-actions">
+        <button id="btnNew" class="big primary">✨ Créer un nouvel add-on</button>
+        <button id="btnOpen" class="big">📂 Ouvrir un add-on</button>
+      </div>
+      <button id="btnImport" class="import-zone"><span>📥 Ouvrir un fichier <b>.mcaddon</b> ou <b>.mcpack</b></span><small>ou glisse-le n'importe où dans cette fenêtre</small></button>
+      <div id="recentWrap" class="recent hidden">
+        <h3>Add-ons récents</h3>
+        <ul id="recentList"></ul>
+      </div>
+      <div class="home-status">
+        <span id="mcStatus" class="pill">Minecraft : vérification…</span>
+        <span id="keyStatus" class="pill">IA : …</span>
+        <button id="btnSettingsHome" class="link">⚙ Réglages</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Espace de travail ===== -->
+  <section id="workspace" class="screen hidden">
+    <header class="toolbar">
+      <button id="btnHome" class="icon" title="Accueil">🏠</button>
+      <span id="projName" class="proj-name"></span>
+      <div class="sep"></div>
+      <button id="btnSave" title="Enregistrer (Ctrl+S)">💾 Enregistrer</button>
+      <div class="sep"></div>
+      <button id="btnAddItem" class="add">➕ Item</button>
+      <button id="btnAddBlock" class="add">➕ Bloc</button>
+      <button id="btnAddRecipe" class="add">🧩 Recette</button>
+      <div class="sep"></div>
+      <button id="btnCheck" class="build" title="Cherche les erreurs dans ton add-on">✔ Vérifier</button>
+      <button id="btnRun" class="run" title="Copie l'add-on dans Minecraft Bedrock et lance le jeu">▶ Tester dans Minecraft</button>
+      <button id="btnExport" title="Crée un fichier .mcaddon à partager ou installer">📦 Exporter</button>
+      <div class="grow"></div>
+      <button id="btnSettings" class="icon" title="Réglages">⚙</button>
+    </header>
+
+    <div class="main">
+      <aside class="sidebar">
+        <div class="side-title">
+          <span>Fichiers</span>
+          <button id="btnRefresh" class="icon small" title="Actualiser">⟳</button>
+        </div>
+        <div id="tree" class="tree"></div>
+        <div class="side-tip">💡 Clique sur une texture <b>.png</b> pour la dessiner.</div>
+      </aside>
+
+      <div class="center">
+        <div id="tabs" class="tabs"></div>
+        <div class="editor-area">
+          <div id="welcomePane" class="pane welcome">
+            <h2>Par quoi on commence ?</h2>
+            <div class="cards">
+              <button class="card" data-act="item"><span>💎</span>Ajouter un item<small>Gemme, nourriture, épée, pioche…</small></button>
+              <button class="card" data-act="block"><span>🧱</span>Ajouter un bloc<small>Bloc décoratif, bloc lumineux…</small></button>
+              <button class="card" data-act="recipe"><span>🧩</span>Ajouter une recette<small>Pour fabriquer tes items à l'établi</small></button>
+              <button class="card" data-act="ai"><span>🤖</span>Demander à l'IA<small>« Ajoute une épée en rubis qui met le feu »</small></button>
+              <button class="card" data-act="run"><span>▶</span>Tester dans Minecraft<small>Ouvre Minecraft Bedrock avec ton add-on</small></button>
+            </div>
+          </div>
+          <div id="monacoPane" class="pane hidden"><div id="monaco"></div></div>
+          <div id="pixelPane" class="pane hidden"></div>
+        </div>
+        <div id="consoleWrap" class="console collapsed">
+          <div class="console-bar">
+            <button id="btnConsoleToggle" class="link">▸ Console</button>
+            <span id="consoleStatus" class="console-status"></span>
+            <div class="grow"></div>
+            <button id="btnFixWithAi" class="small ai hidden">🤖 Demander à l'IA de corriger</button>
+            <button id="btnClearConsole" class="small">Effacer</button>
+          </div>
+          <pre id="console"></pre>
+        </div>
+      </div>
+
+      <aside class="ai-panel">
+        <div class="ai-head">
+          <span>🤖 Assistant IA</span>
+          <div class="grow"></div>
+          <button id="btnAiUndo" class="small hidden" title="Annuler les dernières modifications de l'IA">↩ Annuler</button>
+          <button id="btnAiReset" class="small" title="Nouvelle conversation">🗑</button>
+        </div>
+        <div id="aiLog" class="ai-log">
+          <div class="msg bot intro">
+            Salut ! Je suis ton assistant. Dis-moi ce que tu veux ajouter à ton add-on, par exemple :
+            <ul class="suggest">
+              <li>« Ajoute un rubis et un bloc de rubis, avec les recettes »</li>
+              <li>« Crée une pomme dorée qui donne la vitesse »</li>
+              <li>« Fais que mon épée mette le feu aux monstres »</li>
+              <li>« Explique-moi ce fichier »</li>
+            </ul>
+          </div>
+        </div>
+        <form id="aiForm" class="ai-form">
+          <textarea id="aiInput" rows="3" placeholder="Écris ta demande ici… (Entrée pour envoyer)"></textarea>
+          <div class="ai-form-row">
+            <label class="ctx"><input type="checkbox" id="aiCtx" checked /> Fichier ouvert</label>
+            <div class="grow"></div>
+            <button type="button" id="btnAiStop" class="small stop hidden">⏹</button>
+            <button type="submit" id="btnAiSend" class="primary">Envoyer ➤</button>
+          </div>
+        </form>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== Fenêtre modale générique ===== -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="modalTitle"></h2>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button id="modalCancel">Annuler</button>
+        <button id="modalOk" class="primary">OK</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <div id="dropOverlay" class="drop-overlay hidden"><div>📥 Lâche ton .mcaddon ou .mcpack ici</div></div>
+
+  <script src="markdown.js"></script>
+  <script src="pixel.js"></script>
+  <script src="../../node_modules/monaco-editor/min/vs/loader.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
