@@ -1,0 +1,90 @@
+diff --git a/src/assets/germany/infantry/soldier.ts b/src/assets/germany/infantry/soldier.ts
+index 4332395..23cc042 100644
+--- a/src/assets/germany/infantry/soldier.ts
++++ b/src/assets/germany/infantry/soldier.ts
+@@ -59,8 +59,8 @@ interface RoleSpec {
+ 
+ const weaponCache = new Map<Role, WeaponModel>();
+ const ROLES: Record<Role, RoleSpec> = {
+-  rifleman: { pose: 'order-arms', weapon: () => buildKar98k({ detail: 'low' }) },
+-  'squad-leader': { pose: 'low-ready', weapon: () => buildMp40({ stock: 'extended', magazine: true }) },
++  rifleman: { pose: 'aim', weapon: () => buildKar98k({ detail: 'low' }) },
++  'squad-leader': { pose: 'aim', weapon: () => buildMp40({ stock: 'extended', magazine: true }) },
+   'machine-gunner': { pose: 'low-ready', weapon: () => buildMg42({ bipod: 'folded', drum: true, detail: 'low' }) },
+ };
+ 
+diff --git a/src/assets/shared/human/poses.ts b/src/assets/shared/human/poses.ts
+index 197f91f..f5ac831 100644
+--- a/src/assets/shared/human/poses.ts
++++ b/src/assets/shared/human/poses.ts
+@@ -22,7 +22,7 @@ export type { StanceSpec };
+ import { GRIP_BETA, gripHandFrame, type GripHandOptions } from './hands';
+ import type { Frame, SDF } from './sdfx';
+ 
+-export type PoseId = 'stand' | 'port-arms' | 'order-arms' | 'low-ready' | 'shoulder-carry';
++export type PoseId = 'stand' | 'port-arms' | 'order-arms' | 'low-ready' | 'shoulder-carry' | 'aim';
+ 
+ export const POSES: { id: PoseId; label: string; weapon: 'none' | 'rifle' | 'smg-lmg' | 'lmg' }[] = [
+   { id: 'stand', label: 'Standing', weapon: 'none' },
+@@ -86,6 +86,15 @@ const STANCES: Record<PoseId, StanceSpec> = {
+     head: [3, -1, 0],
+     shoulders: { r: [-0.004, 0.012], l: [0.0, 0.02] },
+   },
++  aim: {
++    feet: { r: { x: -0.15, z: -0.08, yaw: 18 }, l: { x: 0.13, z: 0.12, yaw: 8 } },
++    pelvis: { shift: [-0.01, 0.0], drop: 0.025, rot: [4, 4, -0.5] },
++    lumbar: [4, -2, 0],
++    chest: [4, -4, 0],
++    neck: [6, 0, 0],
++    head: [8, -2, 6],
++    shoulders: { r: [-0.004, 0.035], l: [0.0, 0.02] },
++  },
+   'shoulder-carry': {
+     feet: { r: { x: -0.11, z: 0.0, yaw: 10 }, l: { x: 0.118, z: 0.04, yaw: 13 } },
+     pelvis: { shift: [0.012, -0.008], drop: 0.008, rot: [3, -1, 1.5] },
+@@ -474,6 +483,25 @@ export function solvePose(id: PoseId, weapon?: WeaponModel | null, params: BodyP
+     const fl = fitGripArm(sk, 'l', sup, wm, hintL, 0.9, bL, 40, LR_SUPPORT);
+     hands.r = { kind: 'grip', grip: fr.grip, opts: handOpt('r', bR) };
+     hands.l = { kind: 'grip', grip: fl.grip, opts: handOpt('l', bL) };
++  } else if (id === 'aim') {
++    const trig = gR ?? w.grips.trigger;
++    const sup = gL ?? w.grips.support;
++    const bR = ov.handOpts?.r?.beta ?? betaFor(trig, false);
++    const bL = ov.handOpts?.l?.beta ?? betaFor(sup, true);
++    const butt = (w.shoulder ?? V(0, -0.04, w.muzzle.z - w.length)).clone();
++    const sh = sk.arm.r.shoulder;
++    const AIM = (globalThis as any).__AIM ?? { left: 0.075, fwd: 0.06, up: 0.05, yaw: 4 };
++    const pocket = sh.clone().addScaledVector(A.leftC, AIM.left * s).addScaledVector(A.fwdC, AIM.fwd * s).addScaledVector(A.up, AIM.up * s);
++    const bore = A.fwdC.clone().applyAxisAngle(A.up, AIM.yaw * D2R).normalize();
++    wm = placeAt(weaponBasis(bore, A.up), butt, pocket);
++    if (ov.weaponOffset) wm.premultiply(ov.weaponOffset);
++    const hintR = dir(A.leftC, A.up, A.fwdC, -0.45, -1, -0.15);
++    const hintL = dir(A.leftC, A.up, A.fwdC, 0.35, -1, 0.0);
++    reset();
++    const fr = fitGripArm(sk, 'r', trig, wm, hintR, 0.9, bR, 30, { flex: 70 });
++    const fl = fitGripArm(sk, 'l', sup, wm, hintL, 0.9, bL, 40, { flex: 60, flexW: 0.3 });
++    hands.r = { kind: 'grip', grip: fr.grip, opts: handOpt('r', bR) };
++    hands.l = { kind: 'grip', grip: fl.grip, opts: handOpt('l', bL) };
+   } else if (id === 'shoulder-carry') {
+     // LMG over the right shoulder, muzzle to the rear and up: the receiver / barrel jacket rests on
+     // top of the shoulder, the butt points forward-down in front of the chest and the right hand
+diff --git a/src/assets/shared/human/soldier.ts b/src/assets/shared/human/soldier.ts
+index 4565beb..2aa75ee 100644
+--- a/src/assets/shared/human/soldier.ts
++++ b/src/assets/shared/human/soldier.ts
+@@ -265,6 +265,7 @@ function chooseSlack(w: WeaponModel, wm: THREE.Matrix4, clothed: SDF, wanted = 0
+  * API (for authors who add more parts themselves). See README.md in this folder.
+  */
+ export function buildSoldier(spec: SoldierSpec): SoldierBuild {
++  { const fp = (globalThis as any).__FORCE_POSE; if (fp && spec.weapon) spec = { ...spec, pose: fp }; }
+   const t0 = performance.now();
+   const stature = spec.stature ?? DEFAULT_BODY.stature;
+   const lodKey = spec.detail === 'low' ? 'low' : 'high';
+@@ -277,6 +278,7 @@ export function buildSoldier(spec: SoldierSpec): SoldierBuild {
+     if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value as string);
+   }
+   const H = heavy;
++  (globalThis as any).__LAST_SOL = { sk: H.pose.sk, wm: H.pose.weaponMatrix };
+   const root = new THREE.Group();
+   root.name = 'soldier';
+   const addClone = (m: THREE.Mesh) => {
