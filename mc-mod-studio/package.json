@@ -23,7 +23,10 @@
       "!**/*.{map,md,d.ts,d.mts}"
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -40,6 +43,9 @@
     "icon": "src/renderer/icon.png",
     "directories": {
       "output": "dist"
+    },
+    "portable": {
+      "artifactName": "ModCraft-Studio-${version}-portable.exe"
     }
   },
   "dependencies": {
