@@ -1,4 +1,4 @@
-// Assistant IA : Claude, avec des outils pour lire/modifier le mod et le compiler.
+// Assistant IA : Claude, avec des outils pour lire/modifier l'add-on Bedrock et le vérifier.
 const Anthropic = require('@anthropic-ai/sdk');
 const { z } = require('zod');
 const files = require('./files');
@@ -12,24 +12,24 @@ const MODELS = {
 const DEFAULT_MODEL = 'claude-opus-5-5';
 
 function systemPrompt(meta) {
-  return `Tu es l'assistant de ModCraft Studio, un éditeur pour créer des mods Minecraft. Tu aides des débutants (souvent jeunes) à créer leur mod.
+  return `Tu es l'assistant de ModCraft Studio, un éditeur pour créer des add-ons Minecraft Bedrock Edition. Tu aides des débutants (souvent jeunes).
 
 Le projet ouvert :
-- Mod "${meta.modName}" (identifiant "${meta.modId}"), Fabric pour Minecraft ${meta.minecraft}, Java 21.
-- Mappings officiels Mojang (noms comme ResourceLocation, BuiltInRegistries, Item.Properties, BlockBehaviour.Properties, Tiers). N'utilise PAS les noms Yarn (Identifier, Registries, Item.Settings…).
-- Package Java : ${meta.package}. Classe principale : ${meta.className}.
-- Les items sont dans ModItems.java, les blocs dans ModBlocks.java (qui enregistre aussi le BlockItem), l'onglet créatif dans ModTab.java (il contient automatiquement tout ModItems.ALL).
-- Les lignes "// @modcraft:items" et "// @modcraft:blocks" sont des repères utilisés par l'éditeur : ne les supprime jamais.
-- Ressources : assets/${meta.modId}/ (lang/en_us.json et fr_fr.json, models, blockstates, textures) et data/${meta.modId}/ (recipe/, loot_table/). En 1.21.1 les dossiers data sont au singulier (recipe, loot_table, tags/block, tags/item) et le résultat d'une recette s'écrit {"id": "...", "count": n}.
+- Add-on "${meta.modName}", espace de noms "${meta.modId}" (identifiants de la forme "${meta.modId}:nom"). Minecraft Bedrock ${meta.minEngine || '1.21.100'} ou plus récent.
+- BP/ = pack de comportement : manifest.json, items/ (format_version "1.21.100"), blocks/ (format_version "1.21.60"), recipes/, loot_tables/, scripts/main.js (JavaScript, module "@minecraft/server" version 2.0.0, API stable uniquement, pas d'expériences).
+- RP/ = pack de ressources : manifest.json, textures/item_texture.json (atlas.items), textures/terrain_texture.json (atlas.terrain), textures/items/*.png, textures/blocks/*.png, blocks.json (sons), texts/fr_FR.lang et en_US.lang.
+- Conventions de l'éditeur : un item a "minecraft:icon": "${meta.modId}_<nom>" (clé de item_texture.json) et "minecraft:display_name": {"value": "item.${meta.modId}.<nom>.name"} traduit dans les .lang. Un bloc est traduit par "tile.${meta.modId}:<nom>.name".
+- Recettes : format_version "1.20.10", tags ["crafting_table"], "unlock": [{"context": "AlwaysUnlocked"}], résultat {"item": "...", "count": n}.
 
 Comment travailler :
-- Pour un item ou un bloc simple, utilise en priorité les outils add_item / add_block / add_recipe : ils créent le Java, le modèle, la texture, la traduction et la loot table d'un coup.
-- Pour le reste (comportements, événements, nouvelles classes), lis les fichiers concernés puis modifie-les avec edit_file (petits changements) ou write_file (nouveau fichier).
-- Après des modifications de code Java, lance build_mod pour vérifier que ça compile, et corrige les erreurs s'il y en a.
-- Ne touche pas à build.gradle, settings.gradle ou gradle.properties sauf si on te le demande.
-- Les textures sont des PNG 16x16 ; tu ne peux pas les dessiner, mais l'utilisateur peut les peindre dans l'éditeur de pixels (double-clic sur le .png).
+- Pour un item ou un bloc simple, utilise en priorité add_item / add_block / add_recipe : ils créent le JSON, la texture, l'atlas et les traductions d'un coup.
+- Pour des comportements (effets quand on mange, épée qui met le feu, commandes, événements), écris du JavaScript dans BP/scripts/main.js (ou d'autres fichiers importés depuis main.js) avec l'API stable @minecraft/server 2.0.0, par exemple world.afterEvents.entityHitEntity, world.afterEvents.itemCompleteUse, world.afterEvents.itemUse, system.runInterval. N'utilise pas @minecraft/server-ui ni de version beta sauf si on te le demande.
+- Lis les fichiers concernés avant de les modifier (edit_file pour les petits changements, write_file pour un nouveau fichier). Ne casse pas les manifests (UUID).
+- Après des modifications, lance check_addon pour vérifier et corrige les erreurs.
+- Les textures sont des PNG 16x16 ; tu ne peux pas les dessiner, mais l'utilisateur peut les peindre dans l'éditeur de pixels (clic sur le .png).
+- Il n'y a ni Java ni Gradle : c'est Bedrock, pas Java Edition.
 
-Réponds toujours en français, simplement, avec des phrases courtes et sans jargon inutile. Quand tu as fini, résume en 2-3 lignes ce que tu as fait et comment le tester (bouton "▶ Tester dans Minecraft").`;
+Réponds toujours en français, simplement, avec des phrases courtes et sans jargon inutile. Quand tu as fini, résume en 2-3 lignes ce que tu as fait et comment le tester (bouton "▶ Tester dans Minecraft", puis activer les packs dans le monde si ce n'est pas déjà fait).`;
 }
 
 const schemas = {
@@ -46,58 +46,56 @@ const schemas = {
   add_block: z.object({
     name: z.string().min(1), name_en: z.string().optional(),
     hardness: z.number().optional(), light: z.number().optional(),
-    sound: z.enum(['STONE', 'WOOD', 'METAL', 'GLASS', 'GRASS', 'WOOL', 'SAND']).optional(),
-    tool: z.enum(['pickaxe', 'axe', 'shovel', 'hoe', 'none']).optional(),
+    sound: z.enum(['stone', 'wood', 'metal', 'glass', 'grass', 'cloth', 'sand']).optional(),
   }),
   add_recipe: z.object({
     grid: z.array(z.string()).max(9), result: z.string().min(1), count: z.number().optional(), shapeless: z.boolean().optional(),
   }),
-  build_mod: z.object({}),
+  check_addon: z.object({}),
 };
 
 const TOOLS = [
-  { name: 'list_files', description: 'Liste les fichiers du projet (ou d\'un sous-dossier).', input_schema: { type: 'object', properties: { folder: { type: 'string', description: 'Sous-dossier relatif, optionnel' } } } },
-  { name: 'read_file', description: 'Lit un fichier texte du projet. Chemin relatif à la racine du projet.', input_schema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } },
+  { name: 'list_files', description: 'Liste les fichiers du projet (ou d\'un sous-dossier).', input_schema: { type: 'object', properties: { folder: { type: 'string', description: 'Sous-dossier relatif, optionnel (ex : BP/items)' } } } },
+  { name: 'read_file', description: 'Lit un fichier texte du projet. Chemin relatif à la racine du projet (ex : BP/scripts/main.js).', input_schema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } },
   { name: 'write_file', description: 'Crée ou remplace entièrement un fichier texte du projet.', eager_input_streaming: true, input_schema: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path', 'content'] } },
   { name: 'edit_file', description: 'Remplace un passage exact (old_text, qui doit apparaître une seule fois) par new_text dans un fichier.', eager_input_streaming: true, input_schema: { type: 'object', properties: { path: { type: 'string' }, old_text: { type: 'string' }, new_text: { type: 'string' } }, required: ['path', 'old_text', 'new_text'] } },
   {
     name: 'add_item',
-    description: 'Ajoute un item complet (Java + modèle + texture + traductions). name = nom affiché en français.',
+    description: 'Ajoute un item complet (JSON de l\'item + texture + atlas + traductions). name = nom affiché en français.',
     input_schema: {
       type: 'object',
       properties: {
         name: { type: 'string' }, name_en: { type: 'string', description: 'Nom anglais affiché' },
         kind: { type: 'string', enum: ['simple', 'food', 'sword', 'pickaxe', 'axe', 'shovel'] },
-        tier: { type: 'string', enum: ['WOOD', 'STONE', 'IRON', 'GOLD', 'DIAMOND', 'NETHERITE'] },
-        nutrition: { type: 'number' }, saturation: { type: 'number' }, damage: { type: 'number' }, stack: { type: 'number' },
+        tier: { type: 'string', enum: ['WOOD', 'STONE', 'IRON', 'GOLD', 'DIAMOND', 'NETHERITE'], description: 'Matériau des outils (dégâts, durabilité, vitesse)' },
+        nutrition: { type: 'number' }, saturation: { type: 'number' }, damage: { type: 'number', description: 'Dégâts en plus (épée)' }, stack: { type: 'number' },
       },
       required: ['name'],
     },
   },
   {
     name: 'add_block',
-    description: 'Ajoute un bloc complet (Java + BlockItem + blockstate + modèles + texture + loot table + traductions).',
+    description: 'Ajoute un bloc complet (JSON du bloc + texture + atlas + son + loot table + traductions).',
     input_schema: {
       type: 'object',
       properties: {
         name: { type: 'string' }, name_en: { type: 'string' },
-        hardness: { type: 'number', description: '0 à 50, pierre = 1.5, fer = 5' }, light: { type: 'number', description: 'Lumière émise 0-15' },
-        sound: { type: 'string', enum: ['STONE', 'WOOD', 'METAL', 'GLASS', 'GRASS', 'WOOL', 'SAND'] },
-        tool: { type: 'string', enum: ['pickaxe', 'axe', 'shovel', 'hoe', 'none'] },
+        hardness: { type: 'number', description: '0 à 50 (terre 0.5, pierre 1.5, fer 5)' }, light: { type: 'number', description: 'Lumière émise 0-15' },
+        sound: { type: 'string', enum: ['stone', 'wood', 'metal', 'glass', 'grass', 'cloth', 'sand'] },
       },
       required: ['name'],
     },
   },
   {
     name: 'add_recipe',
-    description: 'Ajoute une recette d\'établi. grid = 9 cases (ligne par ligne) avec des identifiants ("" = vide). Un identifiant sans "namespace:" désigne d\'abord un item du mod, sinon minecraft.',
+    description: 'Ajoute une recette d\'établi. grid = 9 cases (ligne par ligne) avec des identifiants ("" = vide). Un identifiant sans "namespace:" désigne d\'abord un item de l\'add-on, sinon minecraft.',
     input_schema: {
       type: 'object',
       properties: { grid: { type: 'array', items: { type: 'string' } }, result: { type: 'string' }, count: { type: 'number' }, shapeless: { type: 'boolean' } },
       required: ['grid', 'result'],
     },
   },
-  { name: 'build_mod', description: 'Compile le mod avec Gradle et renvoie le résultat (succès ou erreurs).', input_schema: { type: 'object', properties: {} } },
+  { name: 'check_addon', description: 'Vérifie l\'add-on (JSON valides, textures, traductions, recettes, syntaxe des scripts) et renvoie les erreurs.', input_schema: { type: 'object', properties: {} } },
 ];
 
 function toolLabel(name, input) {
@@ -110,24 +108,17 @@ function toolLabel(name, input) {
     case 'add_item': return `➕ Ajoute l'item « ${input.name} »`;
     case 'add_block': return `➕ Ajoute le bloc « ${input.name} »`;
     case 'add_recipe': return `🧩 Ajoute une recette pour ${input.result}`;
-    case 'build_mod': return '🔨 Compile le mod';
+    case 'check_addon': return '✔ Vérifie l\'add-on';
     default: return name;
   }
 }
 
-function summarizeBuild(code, output) {
-  const lines = output.split(/\r?\n/);
-  if (code === 0) return 'BUILD SUCCESSFUL : le mod compile sans erreur.';
-  const errs = lines.filter((l) => /error:|ERROR|FAILURE|What went wrong|Exception|\.java:\d+/.test(l));
-  return `ÉCHEC de la compilation (code ${code}).\nLignes importantes :\n${errs.slice(0, 60).join('\n')}\n\nFin du journal :\n${lines.slice(-60).join('\n')}`;
-}
-
 class Assistant {
-  constructor({ apiKey, model, project, runBuild }) {
+  constructor({ apiKey, model, project, runCheck }) {
     this.client = new Anthropic({ apiKey });
     this.model = MODELS[model] ? model : DEFAULT_MODEL;
     this.project = project; // { root, meta }
-    this.runBuild = runBuild; // async () => {code, output}
+    this.runCheck = runCheck; // async () => texte du rapport
     this.messages = [];
     this.abort = null;
     this.lastBackups = null;
@@ -151,6 +142,15 @@ class Assistant {
     }
   }
 
+  /** Fichiers créés pendant ce tour : l'annulation les supprimera. */
+  markCreated(absList) {
+    if (!this.turnBackups) return;
+    for (const abs of absList) {
+      const rel = files.toRel(this.project.root, abs);
+      if (!this.turnBackups.has(rel)) this.turnBackups.set(rel, null);
+    }
+  }
+
   /** Annule les modifications de fichiers texte du dernier message. */
   undoLastTurn() {
     if (!this.lastBackups || !this.lastBackups.size) return [];
@@ -171,8 +171,7 @@ class Assistant {
     if (!parsed.success) return { error: 'INVALID_INPUT: ' + parsed.error.message };
     const input = parsed.data;
     const { root, meta } = this.project;
-    const javaFiles = () => ['ModItems.java', 'ModBlocks.java'].map((f) => `src/main/java/${meta.package.replace(/\./g, '/')}/${f}`);
-    const langFiles = () => ['en_us.json', 'fr_fr.json'].map((f) => `src/main/resources/assets/${meta.modId}/lang/${f}`);
+    const shared = ['RP/textures/item_texture.json', 'RP/textures/terrain_texture.json', 'RP/blocks.json', 'RP/texts/fr_FR.lang', 'RP/texts/en_US.lang'];
 
     switch (name) {
       case 'list_files':
@@ -197,30 +196,27 @@ class Assistant {
         return { content: `Fichier modifié : ${input.path}` };
       }
       case 'add_item': {
-        [...javaFiles(), ...langFiles()].forEach((f) => this.backup(f));
+        shared.forEach((f) => this.backup(f));
         const r = gen.addItem(root, meta, { name: input.name, nameFr: input.name, nameEn: input.name_en, kind: input.kind, tier: input.tier, nutrition: input.nutrition, saturation: input.saturation, damage: input.damage, stack: input.stack });
-        r.created.forEach((abs) => this.backup(files.toRel(root, abs)));
+        this.markCreated(r.created);
         ui.fileChanged(null);
         return { content: `Item ajouté : ${meta.modId}:${r.id}. Texture : ${files.toRel(root, r.texture)}` };
       }
       case 'add_block': {
-        [...javaFiles(), ...langFiles()].forEach((f) => this.backup(f));
-        const r = gen.addBlock(root, meta, { name: input.name, nameFr: input.name, nameEn: input.name_en, hardness: input.hardness, light: input.light, sound: input.sound, tool: input.tool });
-        r.created.forEach((abs) => this.backup(files.toRel(root, abs)));
+        shared.forEach((f) => this.backup(f));
+        const r = gen.addBlock(root, meta, { name: input.name, nameFr: input.name, nameEn: input.name_en, hardness: input.hardness, light: input.light, sound: input.sound });
+        this.markCreated(r.created);
         ui.fileChanged(null);
         return { content: `Bloc ajouté : ${meta.modId}:${r.id}. Texture : ${files.toRel(root, r.texture)}` };
       }
       case 'add_recipe': {
         const r = gen.addRecipe(root, meta, input);
-        this.backup(files.toRel(root, r.file));
         this.turnBackups.set(files.toRel(root, r.file), null);
         ui.fileChanged(null);
         return { content: `Recette créée : ${files.toRel(root, r.file)}\n${JSON.stringify(r.recipe)}` };
       }
-      case 'build_mod': {
-        const r = await this.runBuild();
-        return { content: summarizeBuild(r.code, r.output) };
-      }
+      case 'check_addon':
+        return { content: await this.runCheck() };
       default:
         return { error: 'Outil inconnu' };
     }
@@ -336,4 +332,4 @@ function friendlyError(err) {
   return err instanceof Error ? err : new Error(String(err));
 }
 
-module.exports = { Assistant, MODELS, DEFAULT_MODEL, TOOLS, summarizeBuild };
+module.exports = { Assistant, MODELS, DEFAULT_MODEL, TOOLS };

@@ -14,7 +14,7 @@ const on = (channel, cb) => {
 
 contextBridge.exposeInMainWorld('studio', {
   info: () => call('app:info'),
-  java: () => call('app:java'),
+  minecraft: () => call('app:minecraft'),
   saveSettings: (s) => call('app:saveSettings', s),
   openExternal: (url) => call('app:openExternal', url),
   pickFolder: (title) => call('dialog:pickFolder', title),
@@ -23,8 +23,6 @@ contextBridge.exposeInMainWorld('studio', {
   openProject: (root) => call('project:open', root),
   tree: () => call('project:tree'),
   reveal: (rel) => call('project:reveal', rel),
-  repairGradle: () => call('project:repairGradle'),
-  onProjectLog: (cb) => on('project:log', cb),
 
   readFile: (rel) => call('file:read', rel),
   writeFile: (rel, content) => call('file:write', rel, content),
@@ -39,13 +37,12 @@ contextBridge.exposeInMainWorld('studio', {
   addRecipe: (o) => call('gen:recipe', o),
   modIds: () => call('gen:ids'),
 
-  gradle: (task) => call('gradle:run', task),
-  gradleStop: () => call('gradle:stop'),
-  installMod: () => call('gradle:install'),
-  openJar: () => call('gradle:openJar'),
-  onGradleStart: (cb) => on('gradle:start', cb),
-  onGradleData: (cb) => on('gradle:data', cb),
-  onGradleExit: (cb) => on('gradle:exit', cb),
+  check: () => call('mc:check'),
+  test: () => call('mc:test'),
+  exportAddon: () => call('mc:export'),
+  openAddonFile: (f) => call('mc:openFile', f),
+  showFile: (f) => call('mc:showFile', f),
+  onCheckReport: (cb) => on('check:report', cb),
 
   aiSend: (text, ctx) => call('ai:send', text, ctx),
   aiStop: () => call('ai:stop'),

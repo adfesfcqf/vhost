@@ -1,170 +1,184 @@
-// Générateurs "en un clic" : items, blocs, recettes. Écrit le Java + les JSON + la texture.
+// Générateurs "en un clic" pour Bedrock : items, blocs, recettes (JSON + texture + traductions).
 const fs = require('fs');
 const path = require('path');
 const { placeholderTexture } = require('./png');
-const { toModId } = require('./template');
+const { toModId, parseJsonLoose } = require('./template');
 
-const TIERS = ['WOOD', 'STONE', 'IRON', 'GOLD', 'DIAMOND', 'NETHERITE'];
-const SOUNDS = { pierre: 'STONE', bois: 'WOOD', metal: 'METAL', verre: 'GLASS', herbe: 'GRASS', laine: 'WOOL', sable: 'SAND' };
+const ITEM_FORMAT = '1.21.100';
+const BLOCK_FORMAT = '1.21.60';
 
-function javaDir(root, meta) {
-  return path.join(root, 'src/main/java', meta.package.replace(/\./g, '/'));
-}
-function assets(root, meta) {
-  return path.join(root, 'src/main/resources/assets', meta.modId);
-}
-function data(root, meta, ns = meta.modId) {
-  return path.join(root, 'src/main/resources/data', ns);
-}
-function writeFile(p, content, created) {
-  fs.mkdirSync(path.dirname(p), { recursive: true });
-  fs.writeFileSync(p, content);
-  if (created) created.push(p);
-}
-function constName(id) {
-  return id.toUpperCase();
-}
+// Statistiques façon outils vanilla
+const TIERS = {
+  WOOD: { label: 'Bois', damage: 4, durability: 59, speed: 2, tag: 'minecraft:wooden_tier' },
+  STONE: { label: 'Pierre', damage: 5, durability: 131, speed: 4, tag: 'minecraft:stone_tier' },
+  IRON: { label: 'Fer', damage: 6, durability: 250, speed: 6, tag: 'minecraft:iron_tier' },
+  GOLD: { label: 'Or', damage: 4, durability: 32, speed: 12, tag: 'minecraft:golden_tier' },
+  DIAMOND: { label: 'Diamant', damage: 7, durability: 1561, speed: 8, tag: 'minecraft:diamond_tier' },
+  NETHERITE: { label: 'Netherite', damage: 8, durability: 2031, speed: 9, tag: 'minecraft:netherite_tier' },
+};
+const SOUNDS = { pierre: 'stone', bois: 'wood', metal: 'metal', verre: 'glass', herbe: 'grass', laine: 'cloth', sable: 'sand' };
+const TOOL_BLOCKS = {
+  pickaxe: "query.any_tag('stone', 'metal', 'rail', 'diamond_pick_diggable', 'iron_pick_diggable', 'stone_pick_diggable', 'gold_pick_diggable')",
+  axe: "query.any_tag('wood', 'pumpkin', 'plant')",
+  shovel: "query.any_tag('dirt', 'sand', 'gravel', 'grass', 'snow')",
+};
 
-function insertAtMarker(file, marker, line) {
-  const src = fs.readFileSync(file, 'utf8');
-  const idx = src.indexOf(marker);
-  if (idx < 0) {
-    throw new Error(`Le repère "${marker}" est introuvable dans ${path.basename(file)}. Remets la ligne "// ${marker}" dans la classe.`);
+const p = (root, ...parts) => path.join(root, ...parts);
+
+function readJson(file, fallback) {
+  if (!fs.existsSync(file)) return fallback;
+  try { return parseJsonLoose(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
+}
+function writeFile(file, content, created) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const existed = fs.existsSync(file);
+  fs.writeFileSync(file, content);
+  if (created && !existed) created.push(file);
+}
+const json = (o) => JSON.stringify(o, null, 2) + '\n';
+
+/** Ajoute ou remplace une ligne clé=valeur dans les fichiers .lang */
+function setLang(root, key, fr, en) {
+  for (const [file, value] of [['fr_FR.lang', fr], ['en_US.lang', en || fr]]) {
+    const f = p(root, 'RP/texts', file);
+    let lines = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split(/\r?\n/) : [];
+    lines = lines.filter((l) => l && !l.startsWith(key + '='));
+    lines.push(`${key}=${String(value).replace(/[\r\n]/g, ' ')}`);
+    writeFile(f, lines.join('\n') + '\n');
   }
-  const lineEnd = src.indexOf('\n', idx);
-  const out = src.slice(0, lineEnd + 1) + line + '\n' + src.slice(lineEnd + 1);
-  fs.writeFileSync(file, out);
 }
 
-function addLang(root, meta, key, en, fr) {
-  for (const [file, value] of [['en_us.json', en], ['fr_fr.json', fr || en]]) {
-    const p = path.join(assets(root, meta), 'lang', file);
-    let j = {};
-    if (fs.existsSync(p)) {
-      try { j = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { j = {}; }
+function addTexture(root, atlasFile, key, texPath) {
+  const f = p(root, 'RP/textures', atlasFile);
+  const j = readJson(f, { texture_data: {} });
+  j.texture_data = j.texture_data || {};
+  j.texture_data[key] = { textures: texPath };
+  writeFile(f, json(j));
+}
+
+function listModIds(root, meta) {
+  const ids = [];
+  for (const [dir, key] of [['BP/items', 'minecraft:item'], ['BP/blocks', 'minecraft:block']]) {
+    const d = p(root, dir);
+    if (!fs.existsSync(d)) continue;
+    for (const f of fs.readdirSync(d)) {
+      if (!f.endsWith('.json')) continue;
+      const j = readJson(p(d, f), null);
+      const id = j && j[key] && j[key].description && j[key].description.identifier;
+      if (id && id.startsWith(meta.modId + ':')) ids.push(id.split(':')[1]);
     }
-    j[key] = value;
-    writeFile(p, JSON.stringify(j, null, 2) + '\n');
   }
-}
-
-function addToTag(root, ns, tagPath, value) {
-  const p = path.join(root, 'src/main/resources/data', ns, 'tags', tagPath + '.json');
-  let j = { replace: false, values: [] };
-  if (fs.existsSync(p)) {
-    try { j = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { /* recrée */ }
-  }
-  if (!Array.isArray(j.values)) j.values = [];
-  if (!j.values.includes(value)) j.values.push(value);
-  writeFile(p, JSON.stringify(j, null, 2) + '\n');
+  return [...new Set(ids)];
 }
 
 function checkId(root, meta, id) {
   if (!/^[a-z][a-z0-9_]*$/.test(id)) throw new Error(`Identifiant invalide : "${id}"`);
-  const itemsSrc = fs.readFileSync(path.join(javaDir(root, meta), 'ModItems.java'), 'utf8');
-  const blocksSrc = fs.readFileSync(path.join(javaDir(root, meta), 'ModBlocks.java'), 'utf8');
-  if (itemsSrc.includes(`"${id}"`) || blocksSrc.includes(`"${id}"`)) {
-    throw new Error(`"${id}" existe déjà dans ton mod.`);
-  }
+  if (listModIds(root, meta).includes(id)) throw new Error(`"${id}" existe déjà dans ton add-on.`);
 }
 
 /**
- * opts: { name (nom affiché), nameFr?, kind: 'simple'|'food'|'sword'|'pickaxe'|'axe'|'shovel',
+ * opts: { name (FR), nameEn?, kind: 'simple'|'food'|'sword'|'pickaxe'|'axe'|'shovel',
  *         stack?, nutrition?, saturation?, tier?, damage? }
  */
 function addItem(root, meta, opts) {
   const id = toModId(opts.id || opts.name);
   checkId(root, meta, id);
+  const ns = meta.modId;
   const kind = opts.kind || 'simple';
-  const stack = Math.max(1, Math.min(99, Number(opts.stack) || 64));
-  const tier = TIERS.includes(opts.tier) ? opts.tier : 'IRON';
-  let props = 'new Item.Properties()';
-  if (stack !== 64 && !['sword', 'pickaxe', 'axe', 'shovel'].includes(kind)) props += `.stacksTo(${stack})`;
-  let expr;
-  switch (kind) {
-    case 'food': {
-      const n = Math.max(1, Math.min(20, Number(opts.nutrition) || 4));
-      const s = Math.max(0, Math.min(2, Number(opts.saturation) || 0.6));
-      expr = `new Item(${props}.food(new FoodProperties.Builder().nutrition(${n}).saturationModifier(${s}F).build()))`;
-      break;
+  const tool = ['sword', 'pickaxe', 'axe', 'shovel'].includes(kind);
+  const tier = TIERS[opts.tier] ? opts.tier : 'IRON';
+  const T = TIERS[tier];
+  const texKey = `${ns}_${id}`;
+  const langKey = `item.${ns}.${id}.name`;
+  const c = {
+    'minecraft:icon': texKey,
+    'minecraft:display_name': { value: langKey },
+  };
+  let category = 'items';
+  if (kind === 'food') {
+    c['minecraft:max_stack_size'] = Math.max(1, Math.min(64, Number(opts.stack) || 64));
+    c['minecraft:tags'] = { tags: ['minecraft:is_food'] };
+    c['minecraft:use_animation'] = 'eat';
+    c['minecraft:use_modifiers'] = { use_duration: 1.6, movement_modifier: 0.35 };
+    c['minecraft:food'] = {
+      nutrition: Math.max(1, Math.min(20, Math.round(Number(opts.nutrition) || 4))),
+      saturation_modifier: Math.max(0, Math.min(2, Number(opts.saturation) || 0.6)),
+    };
+  } else if (tool) {
+    category = 'equipment';
+    const extra = kind === 'sword' ? Math.max(0, Math.round(Number(opts.damage) || 0)) : 0;
+    const base = { sword: T.damage, pickaxe: T.damage - 4, axe: T.damage - 1, shovel: T.damage - 3 }[kind];
+    c['minecraft:max_stack_size'] = 1;
+    c['minecraft:hand_equipped'] = true;
+    c['minecraft:damage'] = Math.max(1, base + extra);
+    c['minecraft:durability'] = { max_durability: T.durability };
+    c['minecraft:enchantable'] = { value: 10, slot: kind };
+    c['minecraft:tags'] = { tags: [`minecraft:is_${kind}`, T.tag] };
+    if (kind !== 'sword') {
+      c['minecraft:digger'] = { use_efficiency: true, destroy_speeds: [{ block: { tags: TOOL_BLOCKS[kind] }, speed: T.speed }] };
     }
-    case 'sword': {
-      const dmg = Number.isFinite(Number(opts.damage)) ? Math.round(Number(opts.damage)) : 3;
-      expr = `new SwordItem(Tiers.${tier}, new Item.Properties().attributes(SwordItem.createAttributes(Tiers.${tier}, ${dmg}, -2.4F)))`;
-      break;
-    }
-    case 'pickaxe':
-      expr = `new PickaxeItem(Tiers.${tier}, new Item.Properties().attributes(PickaxeItem.createAttributes(Tiers.${tier}, 1.0F, -2.8F)))`;
-      break;
-    case 'axe':
-      expr = `new AxeItem(Tiers.${tier}, new Item.Properties().attributes(AxeItem.createAttributes(Tiers.${tier}, 6.0F, -3.1F)))`;
-      break;
-    case 'shovel':
-      expr = `new ShovelItem(Tiers.${tier}, new Item.Properties().attributes(ShovelItem.createAttributes(Tiers.${tier}, 1.5F, -3.0F)))`;
-      break;
-    default:
-      expr = `new Item(${props})`;
+  } else {
+    c['minecraft:max_stack_size'] = Math.max(1, Math.min(64, Number(opts.stack) || 64));
   }
   const created = [];
-  const javaFile = path.join(javaDir(root, meta), 'ModItems.java');
-  insertAtMarker(javaFile, '@modcraft:items', `    public static final Item ${constName(id)} = register("${id}", ${expr});`);
-  const tool = ['sword', 'pickaxe', 'axe', 'shovel'].includes(kind);
-  writeFile(path.join(assets(root, meta), 'models/item', id + '.json'), JSON.stringify({
-    parent: tool ? 'minecraft:item/handheld' : 'minecraft:item/generated',
-    textures: { layer0: `${meta.modId}:item/${id}` },
-  }, null, 2) + '\n', created);
-  const tex = path.join(assets(root, meta), 'textures/item', id + '.png');
+  const itemFile = p(root, 'BP/items', id + '.json');
+  writeFile(itemFile, json({
+    format_version: ITEM_FORMAT,
+    'minecraft:item': { description: { identifier: `${ns}:${id}`, menu_category: { category } }, components: c },
+  }), created);
+  addTexture(root, 'item_texture.json', texKey, `textures/items/${id}`);
+  const tex = p(root, 'RP/textures/items', id + '.png');
   if (!fs.existsSync(tex)) writeFile(tex, placeholderTexture(id, tool ? 'tool' : kind === 'food' ? 'food' : 'item'), created);
-  addLang(root, meta, `item.${meta.modId}.${id}`, opts.nameEn || opts.name || id, opts.nameFr || opts.name || id);
-  return { id, javaFile, texture: tex, created };
+  setLang(root, langKey, opts.nameFr || opts.name || id, opts.nameEn || opts.name || id);
+  return { id, file: itemFile, texture: tex, created };
 }
 
-/** opts: { name, nameFr?, hardness?, light?, sound?, tool?: 'pickaxe'|'axe'|'shovel'|'none' } */
+/** opts: { name, nameEn?, hardness?, light?, sound? } */
 function addBlock(root, meta, opts) {
   const id = toModId(opts.id || opts.name);
   checkId(root, meta, id);
+  const ns = meta.modId;
   const hardness = Math.max(0, Math.min(50, Number(opts.hardness) || 3));
-  const light = Math.max(0, Math.min(15, Number(opts.light) || 0));
-  const sound = SOUNDS[opts.sound] || (Object.values(SOUNDS).includes(opts.sound) ? opts.sound : 'STONE');
-  let props = `BlockBehaviour.Properties.of().strength(${hardness}F, ${(hardness * 2).toFixed(1)}F).sound(SoundType.${sound})`;
-  if (light > 0) props += `.lightLevel(state -> ${light})`;
+  const light = Math.max(0, Math.min(15, Math.round(Number(opts.light) || 0)));
+  const sound = SOUNDS[opts.sound] || (Object.values(SOUNDS).includes(opts.sound) ? opts.sound : 'stone');
+  const texKey = `${ns}_${id}`;
+  const c = {
+    'minecraft:geometry': { identifier: 'minecraft:geometry.full_block' },
+    'minecraft:material_instances': { '*': { texture: texKey, render_method: 'opaque' } },
+    'minecraft:destructible_by_mining': { seconds_to_destroy: Math.round(hardness * 1.5 * 10) / 10 },
+    'minecraft:destructible_by_explosion': { explosion_resistance: Math.round(hardness * 3) },
+    'minecraft:loot': `loot_tables/blocks/${id}.json`,
+  };
+  if (light > 0) c['minecraft:light_emission'] = light;
   const created = [];
-  const javaFile = path.join(javaDir(root, meta), 'ModBlocks.java');
-  insertAtMarker(javaFile, '@modcraft:blocks', `    public static final Block ${constName(id)} = register("${id}", new Block(${props}));`);
-  const a = assets(root, meta);
-  writeFile(path.join(a, 'blockstates', id + '.json'), JSON.stringify({ variants: { '': { model: `${meta.modId}:block/${id}` } } }, null, 2) + '\n', created);
-  writeFile(path.join(a, 'models/block', id + '.json'), JSON.stringify({ parent: 'minecraft:block/cube_all', textures: { all: `${meta.modId}:block/${id}` } }, null, 2) + '\n', created);
-  writeFile(path.join(a, 'models/item', id + '.json'), JSON.stringify({ parent: `${meta.modId}:block/${id}` }, null, 2) + '\n', created);
-  const tex = path.join(a, 'textures/block', id + '.png');
+  const blockFile = p(root, 'BP/blocks', id + '.json');
+  writeFile(blockFile, json({
+    format_version: BLOCK_FORMAT,
+    'minecraft:block': { description: { identifier: `${ns}:${id}`, menu_category: { category: 'construction' } }, components: c },
+  }), created);
+  writeFile(p(root, 'BP/loot_tables/blocks', id + '.json'), json({
+    pools: [{ rolls: 1, entries: [{ type: 'item', name: `${ns}:${id}`, weight: 1 }] }],
+  }), created);
+  addTexture(root, 'terrain_texture.json', texKey, `textures/blocks/${id}`);
+  const bj = readJson(p(root, 'RP/blocks.json'), { format_version: '1.21.40' });
+  bj[`${ns}:${id}`] = { sound };
+  writeFile(p(root, 'RP/blocks.json'), json(bj));
+  const tex = p(root, 'RP/textures/blocks', id + '.png');
   if (!fs.existsSync(tex)) writeFile(tex, placeholderTexture(id, 'block'), created);
-  // Le bloc se récupère quand on le casse
-  writeFile(path.join(data(root, meta), 'loot_table/blocks', id + '.json'), JSON.stringify({
-    type: 'minecraft:block',
-    pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: `${meta.modId}:${id}` }], conditions: [{ condition: 'minecraft:survives_explosion' }] }],
-  }, null, 2) + '\n', created);
-  const tool = ['pickaxe', 'axe', 'shovel', 'hoe'].includes(opts.tool) ? opts.tool : (opts.tool === 'none' ? null : 'pickaxe');
-  if (tool) addToTag(root, 'minecraft', `block/mineable/${tool}`, `${meta.modId}:${id}`);
-  addLang(root, meta, `block.${meta.modId}.${id}`, opts.nameEn || opts.name || id, opts.nameFr || opts.name || id);
-  return { id, javaFile, texture: tex, created };
-}
-
-function normItem(meta, s) {
-  s = String(s || '').trim();
-  if (!s) return '';
-  return s.includes(':') ? s : `minecraft:${s}`;
+  setLang(root, `tile.${ns}:${id}.name`, opts.nameFr || opts.name || id, opts.nameEn || opts.name || id);
+  return { id, file: blockFile, texture: tex, created };
 }
 
 /**
- * Recette de fabrication. grid: tableau de 9 identifiants ("" = case vide), ex. "mon_mod:rubis" ou "stick".
- * Un identifiant sans "namespace:" est cherché d'abord dans le mod, sinon dans minecraft.
+ * Recette d'établi. grid : 9 identifiants ("" = vide). Sans "namespace:", on cherche d'abord dans l'add-on, sinon minecraft.
  */
 function addRecipe(root, meta, { grid, result, count = 1, shapeless = false }) {
-  const ownIds = new Set(listModIds(root, meta));
+  const own = new Set(listModIds(root, meta));
   const resolve = (s) => {
     s = String(s || '').trim();
     if (!s) return '';
     if (s.includes(':')) return s;
-    return ownIds.has(s) ? `${meta.modId}:${s}` : normItem(meta, s);
+    return own.has(s) ? `${meta.modId}:${s}` : `minecraft:${s}`;
   };
   const cells = (grid || []).slice(0, 9).map(resolve);
   while (cells.length < 9) cells.push('');
@@ -172,9 +186,22 @@ function addRecipe(root, meta, { grid, result, count = 1, shapeless = false }) {
   if (!resultId) throw new Error('Choisis le résultat de la recette.');
   if (!cells.some(Boolean)) throw new Error('La grille de fabrication est vide.');
   const n = Math.max(1, Math.min(64, Number(count) || 1));
+  const base = resultId.split(':')[1];
+  const dir = p(root, 'BP/recipes');
+  let name = base;
+  for (let i = 2; fs.existsSync(p(dir, name + '.json')); i++) name = `${base}_${i}`;
+  const identifier = `${meta.modId}:${name}`;
+  const unlock = [{ context: 'AlwaysUnlocked' }];
   let recipe;
   if (shapeless) {
-    recipe = { type: 'minecraft:crafting_shapeless', ingredients: cells.filter(Boolean).map((item) => ({ item })), result: { id: resultId, count: n } };
+    recipe = {
+      format_version: '1.20.10',
+      'minecraft:recipe_shapeless': {
+        description: { identifier }, tags: ['crafting_table'],
+        ingredients: cells.filter(Boolean).map((item) => ({ item })),
+        unlock, result: { item: resultId, count: n },
+      },
+    };
   } else {
     const letters = 'ABCDEFGHI';
     const key = {};
@@ -184,31 +211,19 @@ function addRecipe(root, meta, { grid, result, count = 1, shapeless = false }) {
       if (!map.has(c)) { const L = letters[map.size]; map.set(c, L); key[L] = { item: c }; }
       return map.get(c);
     }).join(''));
-    // Retire lignes/colonnes vides pour que la recette marche partout dans la grille
     while (rows.length && rows[0].trim() === '') rows.shift();
     while (rows.length && rows[rows.length - 1].trim() === '') rows.pop();
     const colEmpty = (i) => rows.every((r) => r[i] === ' ');
     while (rows[0].length && colEmpty(0)) rows = rows.map((r) => r.slice(1));
     while (rows[0].length && colEmpty(rows[0].length - 1)) rows = rows.map((r) => r.slice(0, -1));
-    recipe = { type: 'minecraft:crafting_shaped', pattern: rows, key, result: { id: resultId, count: n } };
+    recipe = {
+      format_version: '1.20.10',
+      'minecraft:recipe_shaped': { description: { identifier }, tags: ['crafting_table'], pattern: rows, key, unlock, result: { item: resultId, count: n } },
+    };
   }
-  const base = resultId.split(':')[1];
-  const dir = path.join(data(root, meta), 'recipe');
-  let file = path.join(dir, base + '.json');
-  for (let i = 2; fs.existsSync(file); i++) file = path.join(dir, `${base}_${i}.json`);
-  writeFile(file, JSON.stringify(recipe, null, 2) + '\n');
+  const file = p(dir, name + '.json');
+  writeFile(file, json(recipe));
   return { file, recipe };
-}
-
-/** Liste les identifiants (items + blocs) déclarés dans le mod. */
-function listModIds(root, meta) {
-  const ids = [];
-  for (const f of ['ModItems.java', 'ModBlocks.java']) {
-    const p = path.join(javaDir(root, meta), f);
-    if (!fs.existsSync(p)) continue;
-    for (const m of fs.readFileSync(p, 'utf8').matchAll(/register\("([a-z0-9_]+)"/g)) ids.push(m[1]);
-  }
-  return [...new Set(ids)];
 }
 
 module.exports = { addItem, addBlock, addRecipe, listModIds, TIERS, SOUNDS };

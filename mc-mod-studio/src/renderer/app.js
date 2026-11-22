@@ -14,8 +14,7 @@ const state = {
   active: null,
   editor: null,
   aiBusy: false,
-  gradleBusy: false,
-  lastBuildFailed: false,
+  busy: false,
 };
 
 // ====================== Utilitaires UI ======================
@@ -85,51 +84,43 @@ async function refreshHome() {
   ks.textContent = state.info.hasKey ? 'IA : prête ✔' : 'IA : ajoute ta clé API';
   ks.className = 'pill ' + (state.info.hasKey ? 'ok' : 'warn clickable');
   ks.onclick = state.info.hasKey ? null : openSettings;
-  checkJava();
+  checkMinecraft();
 }
 
-async function checkJava() {
-  const js = $('#javaStatus');
+async function checkMinecraft() {
+  const ms = $('#mcStatus');
   try {
-    const j = await api.java();
-    js.textContent = j.message;
-    js.className = 'pill ' + (j.ok ? 'ok' : 'warn clickable');
-    js.title = j.ok ? '' : 'Clique pour télécharger Java 21 (Temurin)';
-    js.onclick = j.ok ? null : () => api.openExternal('https://adoptium.net/temurin/releases/?version=21');
+    const m = await api.minecraft();
+    ms.textContent = m.message;
+    ms.className = 'pill ' + (m.ok ? 'ok' : 'warn');
+    ms.title = m.ok ? m.path : 'Tu peux quand même créer ton add-on et l\'exporter en .mcaddon';
   } catch (e) {
-    js.textContent = 'Java : ' + e.message;
+    ms.textContent = 'Minecraft : ' + e.message;
   }
 }
 
 async function newModWizard() {
   const info = state.info || (await api.info());
   const html = `
-    <p class="muted">Ton mod sera fait pour <b>Minecraft ${esc(info.mcVersion)}</b> avec <b>Fabric</b>.</p>
-    <label>Nom du mod<input id="nmName" placeholder="Ex : Super Rubis" maxlength="40"></label>
+    <p class="muted">Ton add-on sera fait pour <b>Minecraft Bedrock</b> (1.21.100 ou plus récent).</p>
+    <label>Nom de l'add-on<input id="nmName" placeholder="Ex : Super Rubis" maxlength="40"></label>
     <label>Ton pseudo<input id="nmAuthor" placeholder="Ex : Steve" maxlength="30"></label>
     <label>Description (facultatif)<input id="nmDesc" placeholder="Ex : Ajoute des rubis partout !" maxlength="120"></label>
     <label>Dossier
       <div class="row"><input id="nmDir" value="${esc(info.defaultParent)}"><button type="button" id="nmPick">Changer…</button></div>
     </label>
-    <pre id="nmLog" class="mini-log hidden"></pre>
     <div class="form-error"></div>`;
-  let unsub;
-  const res = await modal('✨ Nouveau mod', html, {
-    okText: 'Créer le mod',
+  const res = await modal('✨ Nouvel add-on', html, {
+    okText: 'Créer l\'add-on',
     onOpen: (b) => {
       $('#nmPick', b).onclick = async () => {
         const d = await api.pickFolder('Où créer le mod ?');
         if (d) $('#nmDir', b).value = d;
       };
-      unsub = api.onProjectLog((m) => {
-        const l = $('#nmLog', b);
-        l.classList.remove('hidden');
-        l.textContent += m + '\n';
-      });
     },
     collect: async (b) => {
       const modName = $('#nmName', b).value.trim();
-      if (!modName) throw new Error('Donne un nom à ton mod.');
+      if (!modName) throw new Error('Donne un nom à ton add-on.');
       $('#modalOk').disabled = true;
       $('#modalOk').textContent = 'Création…';
       try {
@@ -141,19 +132,18 @@ async function newModWizard() {
         });
       } finally {
         $('#modalOk').disabled = false;
-        $('#modalOk').textContent = 'Créer le mod';
+        $('#modalOk').textContent = 'Créer l\'add-on';
       }
     },
   });
-  if (unsub) unsub();
   if (!res) return;
   enterWorkspace(res);
-  toast('Ton mod est créé ! 🎉', 'ok');
+  toast('Ton add-on est créé ! 🎉', 'ok');
   if (res.warnings && res.warnings.length) setTimeout(() => toast(res.warnings[res.warnings.length - 1], 'warn'), 1500);
 }
 
 async function openProjectDialog() {
-  const d = await api.pickFolder('Ouvrir le dossier d\'un mod');
+  const d = await api.pickFolder('Ouvrir le dossier d\'un add-on');
   if (d) openProject(d);
 }
 
@@ -175,7 +165,7 @@ function enterWorkspace({ root, meta, tree }) {
   state.expanded = new Set();
   // Déplie les dossiers utiles par défaut
   const walk = (nodes) => nodes.forEach((n) => {
-    if (n.dir && (n.path.startsWith('src') || n.path === 'src')) { state.expanded.add(n.path); walk(n.children); }
+    if (n.dir && /^(BP|RP)(\/(items|blocks|recipes|scripts|textures|texts)(\/(items|blocks))?)?$/.test(n.path)) { state.expanded.add(n.path); walk(n.children); }
   });
   walk(tree);
   $('#projName').textContent = meta.modName;
@@ -203,11 +193,13 @@ async function goHome() {
 
 // ---------- Arbre de fichiers ----------
 function fileIcon(n) {
+  if (n.dir && n.name === 'BP') return '⚙️';
+  if (n.dir && n.name === 'RP') return '🎨';
   if (n.dir) return state.expanded.has(n.path) ? '📂' : '📁';
-  if (n.name.endsWith('.java')) return '☕';
+  if (n.name.endsWith('.js')) return '📜';
+  if (n.name.endsWith('.lang')) return '🌍';
   if (n.name.endsWith('.png')) return '🖼️';
   if (n.name.endsWith('.json')) return '🧾';
-  if (n.name.includes('gradle')) return '🐘';
   return '📄';
 }
 
@@ -319,7 +311,9 @@ function ensureMonaco() {
 }
 
 function langFor(p) {
-  if (p.endsWith('.java')) return 'java';
+  if (p.endsWith('.js')) return 'javascript';
+  if (p.endsWith('.lang')) return 'ini';
+  if (p.endsWith('.mcfunction')) return 'shell';
   if (p.endsWith('.json') || p.endsWith('.mcmeta')) return 'json';
   if (p.endsWith('.gradle')) return 'groovy';
   if (p.endsWith('.properties')) return 'ini';
@@ -547,12 +541,6 @@ async function addBlockDialog() {
         <option value="verre">Verre</option><option value="herbe">Herbe</option><option value="laine">Laine</option><option value="sable">Sable</option>
       </select>
     </label>
-    <label>Meilleur outil pour le casser
-      <select id="abTool">
-        <option value="pickaxe">Pioche</option><option value="axe">Hache</option><option value="shovel">Pelle</option>
-        <option value="hoe">Houe</option><option value="none">Aucun</option>
-      </select>
-    </label>
     <div class="form-error"></div>`;
   const r = await modal('➕ Ajouter un bloc', html, {
     okText: 'Ajouter',
@@ -566,7 +554,7 @@ async function addBlockDialog() {
       return api.addBlock({
         name, nameFr: name, nameEn: $('#abNameEn', b).value.trim() || name,
         hardness: +$('#abHard', b).value, light: +$('#abLight', b).value,
-        sound: $('#abSound', b).value, tool: $('#abTool', b).value,
+        sound: $('#abSound', b).value,
       });
     },
   });
@@ -578,7 +566,7 @@ const VANILLA = ['stick', 'iron_ingot', 'gold_ingot', 'diamond', 'emerald', 'red
 async function addRecipeDialog() {
   let ids = [];
   try { ids = await api.modIds(); } catch { /* ignore */ }
-  const opts = [...ids.map((i) => `<option value="${esc(i)}">⭐ ${esc(i)} (ton mod)</option>`), ...VANILLA.map((v) => `<option value="${v}">${v}</option>`)].join('');
+  const opts = [...ids.map((i) => `<option value="${esc(i)}">⭐ ${esc(i)} (ton add-on)</option>`), ...VANILLA.map((v) => `<option value="${v}">${v}</option>`)].join('');
   const cells = Array.from({ length: 9 }, (_, i) => `<input class="cell" list="rcList" data-i="${i}" placeholder="vide">`).join('');
   const html = `
     <datalist id="rcList">${opts}</datalist>
@@ -612,7 +600,7 @@ async function addRecipeDialog() {
 async function afterGenerate(r, what) {
   toast(`Ton ${what} « ${r.id} » est ajouté ! Dessine maintenant sa texture 🎨`, 'ok');
   await refreshTree();
-  // Recharge ModItems/ModBlocks s'ils sont ouverts
+  // Recharge les fichiers ouverts (atlas, traductions…)
   for (const t of state.tabs) if (t.kind === 'text') await reloadTab(t.path);
   revealInTree(r.texture);
   openFile(r.texture);
@@ -624,7 +612,7 @@ function revealInTree(p) {
   renderTree();
 }
 
-// ====================== Gradle / Console ======================
+// ====================== Vérification / Test / Export ======================
 const consoleEl = () => $('#console');
 function openConsole() {
   $('#consoleWrap').classList.remove('collapsed');
@@ -637,62 +625,83 @@ function appendConsole(s) {
   if (atBottom) c.scrollTop = c.scrollHeight;
 }
 
-function setGradleBusy(busy, task) {
-  state.gradleBusy = busy;
-  $('#btnStop').classList.toggle('hidden', !busy);
-  $('#btnBuild').disabled = busy;
-  $('#btnRun').disabled = busy;
-  $('#btnInstall').disabled = busy;
-  const st = $('#consoleStatus');
-  if (busy) {
-    st.textContent = task === 'runClient' ? '⏳ Lancement de Minecraft… (la 1re fois peut prendre plusieurs minutes)' : '⏳ Compilation en cours… (la 1re fois télécharge Minecraft, patience !)';
-    st.className = 'console-status busy';
-  }
+function setBusy(busy) {
+  state.busy = busy;
+  ['#btnCheck', '#btnRun', '#btnExport'].forEach((id) => ($(id).disabled = busy));
 }
 
-async function runGradle(task) {
-  if (state.gradleBusy) return;
+function showReport({ ok, text }) {
+  openConsole();
+  appendConsole(`\n━━━━━━━━ ${new Date().toLocaleTimeString()} ━━━━━━━━\n${text}\n`);
+  const st = $('#consoleStatus');
+  st.textContent = ok ? '✔ Aucun problème bloquant' : '✖ Erreurs trouvées — clique sur « Demander à l\'IA de corriger »';
+  st.className = 'console-status ' + (ok ? 'ok' : 'err');
+  $('#btnFixWithAi').classList.toggle('hidden', ok);
+}
+api.onCheckReport(showReport);
+
+async function doCheck() {
+  if (state.busy) return;
+  setBusy(true);
   try {
     await saveAll();
-    await api.gradle(task);
+    const r = await api.check();
+    toast(r.ok ? 'Aucune erreur ✔' : `${r.errors.length} erreur(s) trouvée(s)`, r.ok ? 'ok' : 'error');
   } catch (e) {
     toast(e.message, 'error');
-    appendConsole('\n[ModCraft] ' + e.message + '\n');
-    openConsole();
-    setGradleBusy(false);
+  } finally {
+    setBusy(false);
   }
 }
 
-api.onGradleStart(({ task }) => {
-  openConsole();
-  $('#btnFixWithAi').classList.add('hidden');
-  $('#btnOpenJar').classList.add('hidden');
-  appendConsole(`\n━━━━━━━━ ${task === 'runClient' ? '▶ Lancement de Minecraft' : '🔨 Compilation'} ━━━━━━━━\n`);
-  setGradleBusy(true, task);
-});
-api.onGradleData((d) => appendConsole(d));
-api.onGradleExit(({ task, code }) => {
-  setGradleBusy(false);
-  const st = $('#consoleStatus');
-  if (code === 0) {
-    state.lastBuildFailed = false;
-    st.textContent = task === 'runClient' ? '✔ Minecraft fermé' : '✔ Compilation réussie !';
-    st.className = 'console-status ok';
-    if (task === 'build') { $('#btnOpenJar').classList.remove('hidden'); toast('Compilation réussie ! 🎉', 'ok'); }
-  } else {
-    state.lastBuildFailed = true;
-    st.textContent = '✖ Erreur — clique sur « Demander à l\'IA de corriger »';
-    st.className = 'console-status err';
-    $('#btnFixWithAi').classList.remove('hidden');
+async function doTest() {
+  if (state.busy) return;
+  setBusy(true);
+  try {
+    await saveAll();
+    const r = await api.test();
+    toast('Add-on copié dans Minecraft ✔ Ouvre ton monde !', 'ok');
+    if (r.first) {
+      await modal('▶ Première fois ? Voici comment faire', `
+        <ol class="steps">
+          <li>Dans Minecraft, clique sur <b>Jouer</b> puis <b>Créer un monde</b> (ou modifie un monde existant ✏️).</li>
+          <li>Va dans <b>Packs de comportement</b> → onglet <b>Disponibles</b> → active <b>${esc(state.project.meta.modName)} (comportement)</b>.</li>
+          <li>Le pack de ressources s'active tout seul avec. Conseil : mets le monde en <b>Créatif</b>.</li>
+          <li>Ouvre le monde : tes items sont dans l'inventaire créatif (recherche leur nom).</li>
+        </ol>
+        <p class="muted">Ensuite, après chaque modification : reclique sur ▶ Tester, puis quitte et rouvre ton monde.</p>`, { okText: 'Compris !', cancelText: '' });
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    setBusy(false);
   }
-});
+}
 
-function buildErrorsForAi() {
+async function doExport() {
+  if (state.busy) return;
+  setBusy(true);
+  try {
+    await saveAll();
+    const r = await api.exportAddon();
+    if (!r) return;
+    const ok = await modal('📦 Add-on exporté !', `
+      <p>Ton fichier est prêt :</p><p><code>${esc(r.file)}</code></p>
+      <p class="muted">Double-clique dessus (sur un PC avec Minecraft Bedrock) pour l'installer. Tu peux aussi l'envoyer à tes amis !</p>`,
+    { okText: 'Installer dans Minecraft maintenant', cancelText: 'Fermer' });
+    if (ok) await api.openAddonFile(r.file);
+    else api.showFile(r.file);
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    setBusy(false);
+  }
+}
+
+function errorsForAi() {
   const lines = consoleEl().textContent.split('\n');
   const start = lines.map((l) => l.startsWith('━━━━')).lastIndexOf(true);
-  const run = lines.slice(Math.max(0, start));
-  const important = run.filter((l) => /error:|ERROR|What went wrong|FAILURE|Exception|\.java:\d+|\^/.test(l)).slice(0, 80);
-  return (important.length ? important : run.slice(-80)).join('\n');
+  return lines.slice(Math.max(0, start + 1)).join('\n').trim();
 }
 
 // ====================== Assistant IA ======================
@@ -815,19 +824,18 @@ async function openSettings() {
       <select id="stModel">${info.models.map((m) => `<option value="${m.id}" ${m.id === info.model ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
     </label>
     ${info.hasKey ? '<label class="check"><input type="checkbox" id="stDelKey"> Supprimer la clé enregistrée</label>' : ''}
-    <h3>☕ Java</h3>
-    <label>Dossier de Java 21 (facultatif, si Java n'est pas détecté)
-      <div class="row"><input id="stJava" value="${esc(info.javaHome)}" placeholder="Ex : C:\\Program Files\\Eclipse Adoptium\\jdk-21"><button type="button" id="stJavaPick">Parcourir…</button></div>
+    <h3>🎮 Minecraft Bedrock</h3>
+    <label>Dossier com.mojang (facultatif, si Minecraft n'est pas détecté)
+      <div class="row"><input id="stMc" value="${esc(info.comMojang)}" placeholder="Détecté automatiquement"><button type="button" id="stMcPick">Parcourir…</button></div>
     </label>
-    <p class="muted"><a href="https://adoptium.net/temurin/releases/?version=21" target="_blank">Télécharger Java 21 (Temurin)</a></p>
     <div class="form-error"></div>`;
   const r = await modal('⚙ Réglages', html, {
     okText: 'Enregistrer',
     onOpen: (b) => {
-      $('#stJavaPick', b).onclick = async () => { const d = await api.pickFolder('Dossier de Java 21'); if (d) $('#stJava', b).value = d; };
+      $('#stMcPick', b).onclick = async () => { const d = await api.pickFolder('Dossier com.mojang de Minecraft'); if (d) $('#stMc', b).value = d; };
     },
     collect: (b) => {
-      const s = { model: $('#stModel', b).value, javaHome: $('#stJava', b).value };
+      const s = { model: $('#stModel', b).value, comMojang: $('#stMc', b).value };
       const k = $('#stKey', b).value.trim();
       if (k) s.apiKey = k;
       if ($('#stDelKey', b) && $('#stDelKey', b).checked) s.apiKey = '';
@@ -838,7 +846,7 @@ async function openSettings() {
     toast('Réglages enregistrés ✔', 'ok');
     state.info = await api.info();
     if (!$('#home').classList.contains('hidden')) refreshHome();
-    else checkJava();
+    else checkMinecraft();
   }
 }
 
@@ -853,16 +861,9 @@ function bind() {
   $('#btnAddItem').onclick = addItemDialog;
   $('#btnAddBlock').onclick = addBlockDialog;
   $('#btnAddRecipe').onclick = addRecipeDialog;
-  $('#btnBuild').onclick = () => runGradle('build');
-  $('#btnRun').onclick = () => runGradle('runClient');
-  $('#btnStop').onclick = () => api.gradleStop();
-  $('#btnInstall').onclick = async () => {
-    try {
-      const r = await api.installMod();
-      toast(`Mod installé dans ${r.dir} ✔ (il te faut Fabric Loader + Fabric API dans ton launcher)`, 'ok');
-    } catch (e) { toast(e.message, 'error'); }
-  };
-  $('#btnOpenJar').onclick = () => api.openJar().catch((e) => toast(e.message, 'error'));
+  $('#btnCheck').onclick = doCheck;
+  $('#btnRun').onclick = doTest;
+  $('#btnExport').onclick = doExport;
   $('#btnRefresh').onclick = refreshTree;
   $('#btnConsoleToggle').onclick = () => {
     const w = $('#consoleWrap');
@@ -870,14 +871,14 @@ function bind() {
     $('#btnConsoleToggle').textContent = (w.classList.contains('collapsed') ? '▸' : '▾') + ' Console';
   };
   $('#btnClearConsole').onclick = () => { consoleEl().textContent = ''; $('#consoleStatus').textContent = ''; };
-  $('#btnFixWithAi').onclick = () => sendAi(`La compilation a échoué. Voici les erreurs :\n\n${buildErrorsForAi()}\n\nExplique-moi simplement le problème et corrige-le.`);
+  $('#btnFixWithAi').onclick = () => sendAi(`La vérification de mon add-on a trouvé des problèmes :\n\n${errorsForAi()}\n\nExplique-moi simplement le problème et corrige-le.`);
 
   $$('#welcomePane .card').forEach((c) => (c.onclick = () => {
     const a = c.dataset.act;
     if (a === 'item') addItemDialog();
     else if (a === 'block') addBlockDialog();
     else if (a === 'recipe') addRecipeDialog();
-    else if (a === 'run') runGradle('runClient');
+    else if (a === 'run') doTest();
     else if (a === 'ai') $('#aiInput').focus();
   }));
 

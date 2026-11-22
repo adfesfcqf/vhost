@@ -1,17 +1,17 @@
-// ModCraft Studio — processus principal Electron.
+// ModCraft Studio (Bedrock) — processus principal Electron.
 const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage, Menu } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const files = require('./lib/files');
 const template = require('./lib/template');
 const gen = require('./lib/generators');
-const { detectJava, GradleRunner, minecraftModsDir, findBuiltJar } = require('./lib/gradle');
+const { checkAddon, formatReport } = require('./lib/check');
+const mc = require('./lib/minecraft');
 const { Assistant, MODELS, DEFAULT_MODEL } = require('./lib/agent');
 
 let win;
 let project = null; // { root, meta }
 let assistant = null;
-const gradle = new GradleRunner();
 
 // ---------- Réglages ----------
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
@@ -76,7 +76,6 @@ function createWindow() {
   });
   Menu.setApplicationMenu(null);
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  // Les liens externes s'ouvrent dans le navigateur
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https:\/\//.test(url)) shell.openExternal(url);
     return { action: 'deny' };
@@ -94,20 +93,19 @@ const send = (channel, payload) => {
 };
 
 function requireProject() {
-  if (!project) throw new Error('Aucun mod ouvert.');
+  if (!project) throw new Error('Aucun add-on ouvert.');
   return project;
 }
 
 function openProject(root) {
   const meta = template.readMeta(root);
-  if (!meta) throw new Error('Ce dossier ne contient pas de mod Fabric (fabric.mod.json introuvable).');
+  if (!meta) throw new Error('Ce dossier ne contient pas d\'add-on Bedrock (BP/manifest.json introuvable).');
   project = { root, meta };
   assistant = null;
   addRecent(root, meta);
   return { root, meta, tree: files.tree(root) };
 }
 
-// Gestion d'erreurs uniforme pour l'IPC : { ok, data } ou { ok:false, error }
 function handle(channel, fn) {
   ipcMain.handle(channel, async (_e, ...args) => {
     try {
@@ -118,15 +116,12 @@ function handle(channel, fn) {
   });
 }
 
-async function runGradle(task) {
-  const { root } = requireProject();
-  const s = loadSettings();
-  send('gradle:start', { task });
-  return gradle.run(root, task, {
-    javaHome: s.javaHome,
-    onData: (d) => send('gradle:data', d),
-    onExit: (code) => send('gradle:exit', { task, code }),
-  });
+function runCheck() {
+  const { root, meta } = requireProject();
+  const r = checkAddon(root, meta);
+  const text = formatReport(r);
+  send('check:report', { ok: r.ok, text });
+  return { ...r, text };
 }
 
 function registerIpc() {
@@ -137,18 +132,23 @@ function registerIpc() {
       hasKey: !!getApiKey(),
       model: s.model || DEFAULT_MODEL,
       models: Object.entries(MODELS).map(([id, m]) => ({ id, label: m.label })),
-      javaHome: s.javaHome || '',
+      comMojang: s.comMojang || '',
       recent: (s.recent || []).filter((r) => fs.existsSync(r.root)),
       defaultParent: path.join(app.getPath('documents'), 'ModCraft'),
-      mcVersion: template.MC_VERSION,
+      platform: process.platform,
     };
   });
-  handle('app:java', async () => detectJava(loadSettings().javaHome));
-  handle('app:saveSettings', async ({ apiKey, model, javaHome }) => {
+  handle('app:minecraft', async () => {
+    const found = mc.findComMojang(loadSettings().comMojang);
+    return found
+      ? { ok: true, path: found, message: 'Minecraft Bedrock détecté ✔' }
+      : { ok: false, message: process.platform === 'win32' ? 'Minecraft Bedrock introuvable' : 'Minecraft Bedrock : Windows uniquement (export .mcaddon possible)' };
+  });
+  handle('app:saveSettings', async ({ apiKey, model, comMojang }) => {
     if (apiKey !== undefined) setApiKey(apiKey.trim());
     const s = loadSettings();
     if (model && MODELS[model]) s.model = model;
-    if (javaHome !== undefined) s.javaHome = javaHome.trim();
+    if (comMojang !== undefined) s.comMojang = comMojang.trim();
     saveSettings(s);
     assistant = null;
     return true;
@@ -156,7 +156,6 @@ function registerIpc() {
   handle('app:openExternal', async (url) => {
     if (/^https:\/\//.test(url)) await shell.openExternal(url);
   });
-
   handle('dialog:pickFolder', async (title) => {
     const r = await dialog.showOpenDialog(win, { title: title || 'Choisir un dossier', properties: ['openDirectory', 'createDirectory'] });
     return r.canceled ? null : r.filePaths[0];
@@ -165,19 +164,13 @@ function registerIpc() {
   handle('project:create', async (opts) => {
     const parentDir = opts.parentDir || path.join(app.getPath('documents'), 'ModCraft');
     fs.mkdirSync(parentDir, { recursive: true });
-    const r = await template.createProject({ ...opts, parentDir }, { log: (m) => send('project:log', m) });
-    const opened = openProject(r.root);
-    return { ...opened, warnings: r.warnings };
+    const r = await template.createProject({ ...opts, parentDir });
+    return { ...openProject(r.root), warnings: r.warnings };
   });
   handle('project:open', async (root) => openProject(root));
   handle('project:tree', async () => files.tree(requireProject().root));
   handle('project:reveal', async (rel) => {
-    const { root } = requireProject();
-    shell.showItemInFolder(files.resolveInside(root, rel || '.'));
-  });
-  handle('project:repairGradle', async () => {
-    await template.repairWrapper(requireProject().root);
-    return true;
+    shell.showItemInFolder(files.resolveInside(requireProject().root, rel || '.'));
   });
 
   handle('file:read', async (rel) => files.readText(requireProject().root, rel));
@@ -189,67 +182,62 @@ function registerIpc() {
   handle('file:importImage', async (rel) => {
     const r = await dialog.showOpenDialog(win, { title: 'Importer une image PNG', filters: [{ name: 'PNG', extensions: ['png'] }], properties: ['openFile'] });
     if (r.canceled) return false;
-    const target = files.resolveInside(requireProject().root, rel);
-    fs.copyFileSync(r.filePaths[0], target);
+    fs.copyFileSync(r.filePaths[0], files.resolveInside(requireProject().root, rel));
     return true;
   });
 
-  handle('gen:item', async (opts) => {
-    const { root, meta } = requireProject();
-    const r = gen.addItem(root, meta, opts);
-    return { id: r.id, texture: files.toRel(root, r.texture), javaFile: files.toRel(root, r.javaFile) };
-  });
-  handle('gen:block', async (opts) => {
-    const { root, meta } = requireProject();
-    const r = gen.addBlock(root, meta, opts);
-    return { id: r.id, texture: files.toRel(root, r.texture), javaFile: files.toRel(root, r.javaFile) };
-  });
+  const genResult = (root, r) => ({ id: r.id, texture: files.toRel(root, r.texture), file: files.toRel(root, r.file) });
+  handle('gen:item', async (opts) => { const { root, meta } = requireProject(); return genResult(root, gen.addItem(root, meta, opts)); });
+  handle('gen:block', async (opts) => { const { root, meta } = requireProject(); return genResult(root, gen.addBlock(root, meta, opts)); });
   handle('gen:recipe', async (opts) => {
     const { root, meta } = requireProject();
-    const r = gen.addRecipe(root, meta, opts);
-    return { file: files.toRel(root, r.file) };
+    return { file: files.toRel(root, gen.addRecipe(root, meta, opts).file) };
   });
-  handle('gen:ids', async () => {
-    const { root, meta } = requireProject();
-    return gen.listModIds(root, meta);
-  });
+  handle('gen:ids', async () => { const { root, meta } = requireProject(); return gen.listModIds(root, meta); });
 
-  handle('gradle:run', async (task) => {
-    const r = await runGradle(task);
-    return { code: r.code };
+  handle('mc:check', async () => runCheck());
+  handle('mc:test', async () => {
+    const { root, meta } = requireProject();
+    const r = checkAddon(root, meta);
+    if (!r.ok) {
+      runCheck();
+      throw new Error('Ton add-on a des erreurs : corrige-les d\'abord (voir la console).');
+    }
+    const d = mc.deployDev(root, meta, loadSettings().comMojang);
+    send('check:report', { ok: true, text: `✔ Packs copiés dans Minecraft :\n  ${d.bp}\n  ${d.rp}\nOuvre (ou recharge) ton monde pour voir les changements.` });
+    try { await shell.openExternal('minecraft://'); } catch { /* Minecraft pas lancé automatiquement */ }
+    const s = loadSettings();
+    const first = !s.testedOnce;
+    s.testedOnce = true;
+    saveSettings(s);
+    return { ...d, first };
   });
-  handle('gradle:stop', async () => { gradle.stop(); return true; });
-  handle('gradle:install', async () => {
-    const { root } = requireProject();
-    const jar = findBuiltJar(root);
-    if (!jar) throw new Error('Aucun .jar trouvé. Clique d\'abord sur "Compiler".');
-    const dir = minecraftModsDir();
-    fs.mkdirSync(dir, { recursive: true });
-    const dest = path.join(dir, path.basename(jar));
-    fs.copyFileSync(jar, dest);
-    return { dest, dir };
+  handle('mc:export', async () => {
+    const { root, meta } = requireProject();
+    const r = checkAddon(root, meta);
+    if (!r.ok) {
+      runCheck();
+      throw new Error('Ton add-on a des erreurs : corrige-les d\'abord (voir la console).');
+    }
+    const def = path.join(app.getPath('documents'), 'ModCraft', `${meta.modId}.mcaddon`);
+    const res = await dialog.showSaveDialog(win, { title: 'Exporter l\'add-on', defaultPath: def, filters: [{ name: 'Add-on Minecraft', extensions: ['mcaddon'] }] });
+    if (res.canceled || !res.filePath) return null;
+    return { file: mc.exportMcaddon(root, meta, res.filePath) };
   });
-  handle('gradle:openJar', async () => {
-    const jar = findBuiltJar(requireProject().root);
-    if (!jar) throw new Error('Aucun .jar trouvé. Clique d\'abord sur "Compiler".');
-    shell.showItemInFolder(jar);
+  handle('mc:openFile', async (file) => {
+    if (!/\.mcaddon$/i.test(file) || !fs.existsSync(file)) throw new Error('Fichier introuvable');
+    const err = await shell.openPath(file);
+    if (err) throw new Error(err);
     return true;
   });
+  handle('mc:showFile', async (file) => { shell.showItemInFolder(file); return true; });
 
   handle('ai:send', async (text, context) => {
     const proj = requireProject();
     const key = getApiKey();
     if (!key) throw new Error('Ajoute ta clé API Claude dans ⚙ Réglages pour utiliser l\'assistant.');
     if (!assistant || assistant.project.root !== proj.root) {
-      assistant = new Assistant({
-        apiKey: key,
-        model: loadSettings().model,
-        project: proj,
-        runBuild: async () => {
-          if (gradle.running) return { code: -1, output: 'Une autre tâche Gradle est déjà en cours.' };
-          return runGradle('build');
-        },
-      });
+      assistant = new Assistant({ apiKey: key, model: loadSettings().model, project: proj, runCheck: async () => runCheck().text });
     }
     return assistant.send(text, context, {
       text: (d) => send('ai:text', d),
@@ -272,6 +260,5 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  gradle.stop();
   if (process.platform !== 'darwin') app.quit();
 });

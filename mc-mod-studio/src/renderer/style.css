@@ -213,3 +213,5 @@ button.big { font-size: 17px; padding: 16px 26px; border-radius: 12px; }
 @media (max-width: 1150px) {
   .main { grid-template-columns: 210px 1fr 320px; }
 }
+.steps { padding-left: 20px; line-height: 1.7; }
+.steps li { margin-bottom: 4px; }

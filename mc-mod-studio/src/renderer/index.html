@@ -12,17 +12,17 @@
   <section id="home" class="screen">
     <div class="home-card">
       <div class="logo"><span class="cube"></span>ModCraft <b>Studio</b></div>
-      <p class="tagline">Crée tes propres mods Minecraft, simplement. Avec un assistant IA pour t'aider.</p>
+      <p class="tagline">Crée tes propres add-ons pour <b>Minecraft Bedrock</b>, simplement. Avec un assistant IA pour t'aider.</p>
       <div class="home-actions">
-        <button id="btnNew" class="big primary">✨ Créer un nouveau mod</button>
-        <button id="btnOpen" class="big">📂 Ouvrir un mod</button>
+        <button id="btnNew" class="big primary">✨ Créer un nouvel add-on</button>
+        <button id="btnOpen" class="big">📂 Ouvrir un add-on</button>
       </div>
       <div id="recentWrap" class="recent hidden">
-        <h3>Mods récents</h3>
+        <h3>Add-ons récents</h3>
         <ul id="recentList"></ul>
       </div>
       <div class="home-status">
-        <span id="javaStatus" class="pill">Java : vérification…</span>
+        <span id="mcStatus" class="pill">Minecraft : vérification…</span>
         <span id="keyStatus" class="pill">IA : …</span>
         <button id="btnSettingsHome" class="link">⚙ Réglages</button>
       </div>
@@ -41,10 +41,9 @@
       <button id="btnAddBlock" class="add">➕ Bloc</button>
       <button id="btnAddRecipe" class="add">🧩 Recette</button>
       <div class="sep"></div>
-      <button id="btnBuild" class="build">🔨 Compiler</button>
-      <button id="btnRun" class="run">▶ Tester dans Minecraft</button>
-      <button id="btnStop" class="stop hidden">⏹ Stop</button>
-      <button id="btnInstall" title="Copier le .jar dans .minecraft/mods">📦 Installer</button>
+      <button id="btnCheck" class="build" title="Cherche les erreurs dans ton add-on">✔ Vérifier</button>
+      <button id="btnRun" class="run" title="Copie l'add-on dans Minecraft Bedrock et lance le jeu">▶ Tester dans Minecraft</button>
+      <button id="btnExport" title="Crée un fichier .mcaddon à partager ou installer">📦 Exporter</button>
       <div class="grow"></div>
       <button id="btnSettings" class="icon" title="Réglages">⚙</button>
     </header>
@@ -66,10 +65,10 @@
             <h2>Par quoi on commence ?</h2>
             <div class="cards">
               <button class="card" data-act="item"><span>💎</span>Ajouter un item<small>Gemme, nourriture, épée, pioche…</small></button>
-              <button class="card" data-act="block"><span>🧱</span>Ajouter un bloc<small>Minerai, bloc décoratif, bloc lumineux…</small></button>
+              <button class="card" data-act="block"><span>🧱</span>Ajouter un bloc<small>Bloc décoratif, bloc lumineux…</small></button>
               <button class="card" data-act="recipe"><span>🧩</span>Ajouter une recette<small>Pour fabriquer tes items à l'établi</small></button>
               <button class="card" data-act="ai"><span>🤖</span>Demander à l'IA<small>« Ajoute une épée en rubis qui met le feu »</small></button>
-              <button class="card" data-act="run"><span>▶</span>Tester dans Minecraft<small>Lance le jeu avec ton mod</small></button>
+              <button class="card" data-act="run"><span>▶</span>Tester dans Minecraft<small>Ouvre Minecraft Bedrock avec ton add-on</small></button>
             </div>
           </div>
           <div id="monacoPane" class="pane hidden"><div id="monaco"></div></div>
@@ -81,7 +80,6 @@
             <span id="consoleStatus" class="console-status"></span>
             <div class="grow"></div>
             <button id="btnFixWithAi" class="small ai hidden">🤖 Demander à l'IA de corriger</button>
-            <button id="btnOpenJar" class="small hidden">📁 Voir le .jar</button>
             <button id="btnClearConsole" class="small">Effacer</button>
           </div>
           <pre id="console"></pre>
@@ -97,11 +95,11 @@
         </div>
         <div id="aiLog" class="ai-log">
           <div class="msg bot intro">
-            Salut ! Je suis ton assistant. Dis-moi ce que tu veux ajouter à ton mod, par exemple :
+            Salut ! Je suis ton assistant. Dis-moi ce que tu veux ajouter à ton add-on, par exemple :
             <ul class="suggest">
               <li>« Ajoute un rubis et un bloc de rubis, avec les recettes »</li>
               <li>« Crée une pomme dorée qui donne la vitesse »</li>
-              <li>« Pourquoi ça ne compile pas ? »</li>
+              <li>« Fais que mon épée mette le feu aux monstres »</li>
               <li>« Explique-moi ce fichier »</li>
             </ul>
           </div>

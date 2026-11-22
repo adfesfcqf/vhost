@@ -1,8 +1,8 @@
 {
   "name": "modcraft-studio",
   "productName": "ModCraft Studio",
-  "version": "1.0.0",
-  "description": "Éditeur ultra simple pour créer des mods Minecraft (Fabric) avec assistant IA intégré.",
+  "version": "2.0.0",
+  "description": "Éditeur ultra simple pour créer des add-ons Minecraft Bedrock, avec assistant IA intégré.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -28,7 +28,8 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "artifactName": "ModCraft-Studio-Setup-${version}.exe"
     },
     "linux": {
       "target": "AppImage"

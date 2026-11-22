@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const HIDDEN = new Set(['.gradle', 'build', 'run', '.git', '.idea', 'out', 'node_modules', '.vscode', 'bin']);
-const TEXT_EXT = new Set(['.java', '.json', '.gradle', '.properties', '.txt', '.md', '.mcmeta', '.toml', '.cfg', '.kts', '.gitignore', '.bat', '']);
+const TEXT_EXT = new Set(['.js', '.lang', '.mcfunction', '.java', '.json', '.gradle', '.properties', '.txt', '.md', '.mcmeta', '.toml', '.cfg', '.kts', '.gitignore', '.bat', '']);
 
 function resolveInside(root, rel) {
   const rootAbs = path.resolve(root);
